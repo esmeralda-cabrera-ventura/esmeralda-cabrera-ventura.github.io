@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Articles — Esmeralda C. Cabrera Ventura</title>
+<meta name="description" content="Every article: cloud architecture, software engineering, applied AI, and the trade-offs behind production systems.">
+<meta property="og:title" content="Articles — Esmeralda C. Cabrera Ventura">
+<meta property="og:description" content="Architecture decisions, trade-offs, and what they cost in production. The complete archive.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="archive-head">
+    <div class="eyebrow">The complete archive</div>
+    <h1>Articles</h1>
+    <p class="tag">Each piece takes one system I've worked on and walks the reasoning: the constraints, the trade-offs, what a decision cost, and what I'd approach differently next time.</p>
+  </section>
+
+  <p class="count mono" id="article-count"></p>
+
+  <!-- The list below is generated from articles.js. The entries written
+       here are a fallback for visitors with JavaScript disabled; the
+       script replaces them. You never need to edit this fallback. -->
+  <div id="all-articles">
+
+    <a class="entry" href="autonomous-cybersecurity-agents.html">
+      <div class="date">July 2026 &middot; 9 min read</div>
+      <h2>Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst</h2>
+      <p>Five specialist agents, each deployed as its own addressable inference endpoint on IBM watsonx.ai, chained under a supervising orchestrator — and the decision to trade open-ended agent autonomy for a deterministic single-pass pipeline.</p>
+    </a>
+
+    <a class="entry" href="identity-gated-scheduling.html">
+      <div class="date">July 2026 &middot; 9 min read</div>
+      <h2>Proof of identity, not proof of humanity: a serverless gate for a public calendar</h2>
+      <p>Engineering an identity-gated scheduling system on AWS Lambda, API Gateway, S3 and CloudFront — with a three-state policy engine whose admission rules are configuration and whose verdicts are proven across the entire input space.</p>
+    </a>
+
+    <a class="entry" href="deterministic-by-design.html">
+      <div class="date">July 2026 &middot; 8 min read</div>
+      <h2>Inside Fridge2Meal: a deterministic recipe engine built to reduce food waste</h2>
+      <p>Why I engineered the core matching intelligence directly in PostgreSQL and Node.js, and designed the generative AI layer to sit beside it as an optional enhancement rather than a dependency.</p>
+    </a>
+
+  </div>
+
+  <nav class="pager" id="pager" aria-label="Article pages" hidden></nav>
+
+  <h2 class="section-label">Project detail</h2>
+
+  <a class="entry" href="fridge2meal.html">
+    <div class="date">Full-stack &middot; Engineering dossier</div>
+    <h2>Fridge2Meal</h2>
+    <p>An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command.</p>
+  </a>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Esmeralda C. Cabrera Ventura</span>
+    <span>
+      <a href="index.html">Home</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script src="articles.js"></script>
+</body>
+</html>

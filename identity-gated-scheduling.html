@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of identity, not proof of humanity: a serverless gate for a public calendar</title>
+<meta name="description" content="How I engineered an identity-gated scheduling system on AWS Lambda, API Gateway, S3 and CloudFront — with a three-state policy engine verified exhaustively across its entire input space.">
+<meta property="og:title" content="Proof of identity, not proof of humanity: a serverless gate for a public calendar">
+<meta property="og:description" content="An identity-gated scheduling system on AWS, with a three-state policy engine verified across all 162 combinations of its input space.">
+<meta property="og:image" content="images/rvg-01-architecture.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Serverless &middot; Security</div>
+  <h1>Proof of identity, not proof of humanity: a serverless gate for a public calendar</h1>
+  <p class="standfirst">How I engineered an identity-gated scheduling system on AWS — a policy engine whose admission rules are configuration, whose verdicts are proven across the whole input space, and whose approvals travel as signed, expiring credentials.</p>
+  <div class="byline">July 2026 &middot; 9 min read</div>
+
+  <p>A public portfolio has to satisfy two goals that pull directly against each other. It has to be maximally reachable, so a recruiter can book time in seconds. And it has to be defended, because a naked scheduling link on a public website is an open invitation to automated form-fillers, cold-outreach spam and calendar-stuffing bots.</p>
+
+  <p>The usual compromises are all bad. Hiding the link behind a contact form adds friction and loses exactly the people you wanted. Publishing the raw calendar surrenders control entirely. A CAPTCHA proves the visitor is human but says nothing about whether they are relevant — a bot and a genuine hiring manager are indistinguishable to a checkbox.</p>
+
+  <p>So I framed the requirement differently. What the calendar needs is not proof of humanity. It is proof of professional identity: a verifiable claim, issued by a trusted third party, that the person asking for time is who they say they are. That reframing is what made the rest of the system designable.</p>
+
+  <figure>
+    <img src="images/rvg-01-architecture.jpg" alt="End-to-end architecture diagram of the verification gateway">
+    <figcaption>From an anonymous click, through federated identity and a five-test policy engine, to either a signed booking token or a specific rejection reason.</figcaption>
+  </figure>
+
+  <h2>The shape of the system</h2>
+
+  <p>There is no application server in this architecture. No container, no virtual machine, no database. A static front end initiates a federated identity flow; a managed HTTP endpoint receives the callback; a single stateless function adjudicates it; and the outcome is expressed entirely as an HTTP redirect carrying either a signed approval token or a machine-readable rejection reason.</p>
+
+  <ul>
+    <li><strong>Static front end</strong> — S3 behind CloudFront with Origin Access Control, so the storage bucket is never publicly addressable. The Schedule an Interview control mints a cryptographically random CSRF nonce, stores it in <span class="m">sessionStorage</span>, and hands the browser to LinkedIn</li>
+    <li><strong>LinkedIn OpenID Connect</strong> — the identity provider, returning a single-use authorization code under the <span class="m">openid</span>, <span class="m">profile</span> and <span class="m">email</span> scopes</li>
+    <li><strong>API Gateway HTTP API</strong> — one route, <span class="m">GET /callback</span>, with Lambda proxy integration. That single path is the entire public attack surface</li>
+    <li><strong>Lambda</strong> — Node.js 24.x, zero third-party dependencies. Exchanges the code, gathers every claim the provider will release, runs the policy, mints or withholds the approval token, and writes a structured audit record</li>
+    <li><strong>CloudWatch</strong> — the system of record. Every request logs the policy in force, each test's state, whether data was actually available, and the final verdict</li>
+  </ul>
+
+  <p>Zero dependencies was a deliberate choice rather than minimalism for its own sake. A current Node runtime provides native <span class="m">fetch</span> and ES modules, which is enough to write the entire OAuth orchestration by hand. Nothing to keep patched, and no supply-chain surface at all in the component that makes the security decision.</p>
+
+  <p>Choosing HTTP API over REST API followed the same reasoning. Request validators, usage plans and API keys are genuinely useful features — for a single OAuth callback route they are unused surface, at higher latency and higher cost.</p>
+
+  <h2>Designing for identity providers that decline to answer</h2>
+
+  <p>The most interesting engineering problem in this system is one that isn't obvious until you integrate against a real identity provider.</p>
+
+  <p>Federated providers tier their data. Standard-tier OIDC access grants exactly three scopes and no more. Richer signals — a platform verification badge, a profile headline — live behind privileged endpoints that return HTTP 403 to applications without elevated access. That 403 does not mean the visitor lacks a badge. It means the provider declined to tell you.</p>
+
+  <p>A conventional pass/fail check cannot express that difference. It has two outcomes and needs three, so it collapses "we don't know" into "no" — and a gate built on that collapse rejects legitimate visitors for its own lack of permission. Absence of evidence gets scored as evidence of absence.</p>
+
+  <blockquote>Any policy engine reading a third-party API needs a state for "the source declined to answer," or it will punish users for its own access tier.</blockquote>
+
+  <p>So every test in the engine returns one of three values:</p>
+
+  <ul>
+    <li><strong>PASS</strong> — the provider returned data and the visitor satisfies the rule. Counts toward the passing total</li>
+    <li><strong>FAIL</strong> — the provider returned data and the visitor violates the rule. A genuine failure, and able to veto if the test is mandatory</li>
+    <li><strong>UNAVAILABLE</strong> — the provider returned nothing. Not evidence in either direction, and never counted against the visitor</li>
+  </ul>
+
+  <p>Each test also reports a <span class="m">dataAvailable</span> flag alongside its verdict. That flag is what makes the policy tunable on evidence rather than guesswork: production logs show exactly which sources are answering, so a discretionary rule can be promoted to mandatory when — and only when — its data is reliably present. The operations notes carry that as an explicit rule for future maintainers: never make a test mandatory while its <span class="m">dataAvailable</span> flag reads false.</p>
+
+  <h2>Admission rules as configuration</h2>
+
+  <p>The five tests cover account identity, profile completeness, platform verification badge, headline keywords and corporate email domain. What governs admission, though, is not the tests themselves but two declarations sitting above them: a veto list of tests that must actively pass, and a floor on the total number of passes.</p>
+
+  <p>That structure means the gate's strictness is a configuration value, not control flow. Making corporate email mandatory is a one-line edit. Requiring one criterion beyond the mandatory pair is a one-line edit. Loosening to any two of five is a one-line edit. No logic is rewritten, so no logic can be broken in the rewriting.</p>
+
+  <p>The domain test is worth a note on its own. It screens against a curated deny-list of more than fifty consumer, international and disposable email providers, and rejects malformed domains. Today it is scored rather than mandatory — a recruiter on a consumer address is still admitted, but the failure is recorded and carried in their token. Enforced-and-logged rather than enforced-and-blocking, so the policy can be tightened later against real traffic instead of assumptions.</p>
+
+  <h2>Proving the policy, not trusting it</h2>
+
+  <p>Five tests across three states is a finite space, so I did not sample it. I enumerated it.</p>
+
+  <p>All 162 valid combinations were generated and each evaluated against the specification: access is granted if and only if the identity and profile tests both pass. 162 of 162 correct.</p>
+
+  <p>When a system makes an access decision, "it worked when I tried it" is not evidence. Where the state space is small enough to enumerate, exhaustive proof is available for the cost of a loop, and spot-checking becomes a choice not to bother.</p>
+
+  <figure>
+    <img src="images/rvg-03-verified.jpg" alt="The approval page confirming a verified visitor">
+    <figcaption>An approved verdict, with a signed credential minted and a fifteen-minute window to use it.</figcaption>
+  </figure>
+
+  <h2>An approval that survives a redirect</h2>
+
+  <p>An approved visitor gets forwarded into a static page, so the hand-off cannot rely on server session state. The function mints a compact signed credential instead: HMAC-SHA256 over a base64url payload carrying the account subject, email, display name, which tests passed, which were skipped as unavailable, issue and expiry timestamps, and a UUID replay identifier.</p>
+
+  <p>Fifteen-minute expiry — long enough to book a meeting, short enough that a leaked link is worthless almost immediately. Signatures compared with a timing-safe primitive after an explicit length check, closing a timing side-channel. The structure is deliberately JWT-shaped without inheriting JWT's algorithm-confusion pitfalls, because a format this narrow does not need the generality that causes those bugs.</p>
+
+  <h2>Rejection as a designed outcome</h2>
+
+  <p>Most gates treat a refusal as an error state and emit something generic. That is a design failure twice over: it tells a legitimate visitor nothing actionable, and it tells the operator nothing diagnostic.</p>
+
+  <p>Here rejection is a first-class path with its own destination page and twelve granular reason codes. Crucially, those codes separate policy outcomes from mechanical ones — a reused single-use authorization code produces a retry message rather than a verdict about the visitor, because the two situations are not the same and should not read the same.</p>
+
+  <p>Every visitor who does not get through learns precisely which criterion they did not meet.</p>
+
+  <h2>Instrumented so the live system can be reasoned about</h2>
+
+  <p>Every request emits a structured JSON decision record: the policy in force, each test's state, whether its data source actually answered, and the final verdict. Any decision the gate has ever made can be reconstructed from logs alone, without reproducing it.</p>
+
+  <figure>
+    <img src="images/rvg-02-cloudwatch.jpg" alt="CloudWatch log events for the verification function">
+    <figcaption>Execution telemetry — the authoritative account of what the function did, and the basis for sizing it.</figcaption>
+  </figure>
+
+  <p>Those same logs are how the function was sized rather than guessed at. The report showed peak memory of 103 MB, so the 512 MB configuration carries real headroom — and on Lambda that setting matters more than it looks, because CPU is allocated proportionally to configured memory. Under-provisioning memory throttles the processor, which lengthens cold starts, which pushes the function toward its timeout. The two limits are coupled, and sizing either one without measuring the other is how serverless functions acquire intermittent failures that are miserable to diagnose.</p>
+
+  <p>The timeout is set at 30 seconds against a multi-hop external identity handshake, for the same reason: a cold start plus a conversation with a third-party provider is not a sub-second operation, and configuring it as though it were converts a slow request into an opaque failure.</p>
+
+  <h2>Security as a design input</h2>
+
+  <p>Because this system exists to make a security decision, and was always intended to be published, the controls were designed in rather than reviewed on afterwards.</p>
+
+  <ul>
+    <li>Federated identity over homegrown authentication — no passwords collected, stored or transmitted</li>
+    <li>A cryptographically random CSRF nonce per attempt, persisted client-side and echoed through the round trip</li>
+    <li>Server-side adjudication only; the browser is never trusted with any part of the decision</li>
+    <li>Origin Access Control conditioned on the specific distribution ARN, so the bucket cannot be read on behalf of some other distribution in another account</li>
+    <li>Least-privilege execution — the role carries log-write permissions and no standing data-plane access</li>
+    <li>Fail-closed defaults: any unhandled exception redirects to the failure page, and no code path grants access on error</li>
+  </ul>
+
+  <figure>
+    <img src="images/rvg-04-booked.jpg" alt="Confirmation that the meeting has been scheduled">
+    <figcaption>Definition of done — not "the function returned 200," but a real invitation in a real inbox.</figcaption>
+  </figure>
+
+  <h2>Scope, and what comes next</h2>
+
+  <p>Being precise about where a security boundary sits is part of building one. This gate raises the cost of abuse substantially: it converts an anonymous click into an authenticated, adjudicated, logged decision, and it does so with zero idle cost and a single public route. What it does not do is make the underlying booking URL unreachable to someone who already has it, because the success page is a static document and a static document cannot hold a signing key.</p>
+
+  <p>That scope was chosen deliberately, and the next increment is already specified: mint single-use booking links through the scheduling provider's API from inside the function, so approval is enforced rather than presented. Alongside it, moving credentials into a managed secret store with automatic rotation, promoting the badge and headline tests to mandatory once elevated access makes their data reliable — a change the three-state design already anticipates — and expressing the whole stack as infrastructure as code.</p>
+
+  <h2>What the system demonstrates</h2>
+
+  <p>The finished gate integrates six AWS services into a coherent whole, and the engineering value sits in the couplings between them rather than in any one service: that a region choice becomes part of a hostname a third party must match exactly, that a stage name silently reshapes every registered redirect URI, that configured memory governs CPU allocation.</p>
+
+  <p>Underneath those is the decision I would defend hardest — modelling verification with three states rather than two. It costs almost nothing to implement and it determines whether the system is honest about what it actually knows.</p>
+
+  <blockquote>Decide deliberately which layer owns which guarantee, and never let a system infer a fact from data it was never given.</blockquote>
+
+  <hr>
+
+  <p class="mono stackline">AWS Lambda &middot; API Gateway &middot; S3 &middot; CloudFront &middot; IAM &middot; CloudWatch &middot; LinkedIn OIDC &middot; Node.js</p>
+
+  <p class="note">The full technical report, with 57 captioned build screenshots, is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esmeralda C. Cabrera Ventura — Articles</title>
+<meta name="description" content="Solutions Architect, U.S. Air Force veteran, and founder of Apex Intelligent Systems. Writing about cloud architecture, software engineering, and applied AI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">Cloud &middot; Software &middot; Applied AI</div>
+    <!-- Alternate headlines — swap in whichever fits best:
+         "Architecture decisions, and what each one costs in production."
+         "Systems design under real constraints."
+         "The architecture behind production cloud, software, and AI systems."
+         "Design decisions, failure modes, and the trade-offs between them."
+         "How production systems are architected, and where they break."
+    -->
+    <h1>Architecture decisions, trade-offs, and what they cost in production.</h1>
+    <p class="tag">I'm Esmeralda — a Solutions Architect, U.S. Air Force veteran, and founder of Apex Intelligent Systems. My portfolio shows what I've shipped; this is where I document how it was engineered and why.</p>
+    <div class="links">
+      <a href="#articles">Read the articles</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio &amp; resume &rarr;</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn &rarr;</a>
+    </div>
+  </section>
+
+  <h2 class="section-label" id="about">About</h2>
+
+  <div class="about">
+    <p>My path into engineering ran through the U.S. Air Force, and the habits it built — plan before you execute, think in systems, own what you ship — still shape how I approach technical work. I hold a Master of Science in Computer Science, maintain a security clearance, and work as a Solutions Architect and the founder of Apex Intelligent Systems.</p>
+
+    <p>Most of what I do lives between architecture and implementation: standing up production cloud environments across AWS, Azure and hybrid infrastructure, building cloud-native applications, and developing machine learning and agentic AI automation. Cloud engineering, software development, DevOps and applied ML usually arrive as one problem rather than four, so I work across all of them — building secure, scalable, high-availability systems for government and commercial environments, with an eye toward operational resilience and modernization that produces measurable outcomes.</p>
+
+    <p>Away from the keyboard, I put my energy into fitness, continuous learning, and giving back through STEM education and veteran causes. Curiosity is the thread running through most of it.</p>
+
+    <p>Writing is how I think a problem through properly. Each article here takes one system I've worked on and walks the reasoning: the constraints, the trade-offs, what a decision cost, and what I'd approach differently next time.</p>
+
+    <p class="elsewhere">
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio and resume</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>
+    </p>
+  </div>
+
+  <h2 class="section-label" id="articles"><a href="articles.html">Articles &rarr;</a></h2>
+
+  <!-- ============================================================
+       This list is generated from articles.js — the five newest
+       articles, automatically. To publish a new one, add an entry
+       at the top of articles.js. Nothing here needs editing.
+
+       The blocks below are a fallback for visitors with JavaScript
+       disabled; the script replaces them.
+       ============================================================ -->
+
+  <div id="latest-articles">
+
+    <a class="entry" href="autonomous-cybersecurity-agents.html">
+      <div class="date">July 2026 &middot; 9 min read</div>
+      <h2>Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst</h2>
+      <p>Five specialist agents, each deployed as its own addressable inference endpoint on IBM watsonx.ai, chained under a supervising orchestrator — and the decision to trade open-ended agent autonomy for a deterministic single-pass pipeline.</p>
+    </a>
+
+    <a class="entry" href="identity-gated-scheduling.html">
+      <div class="date">July 2026 &middot; 9 min read</div>
+      <h2>Proof of identity, not proof of humanity: a serverless gate for a public calendar</h2>
+      <p>Engineering an identity-gated scheduling system on AWS Lambda, API Gateway, S3 and CloudFront — with a three-state policy engine whose admission rules are configuration and whose verdicts are proven across the entire input space.</p>
+    </a>
+
+    <a class="entry" href="deterministic-by-design.html">
+      <div class="date">July 2026 &middot; 8 min read</div>
+      <h2>Inside Fridge2Meal: a deterministic recipe engine built to reduce food waste</h2>
+      <p>Why I engineered the core matching intelligence directly in PostgreSQL and Node.js, and designed the generative AI layer to sit beside it as an optional enhancement rather than a dependency.</p>
+    </a>
+
+  </div>
+
+  <p class="more-link" id="more-articles" hidden>
+    <a href="articles.html">See all articles &rarr;</a>
+  </p>
+
+  <h2 class="section-label">Project detail</h2>
+
+  <a class="entry" href="fridge2meal.html">
+    <div class="date">Full-stack &middot; Engineering dossier</div>
+    <h2>Fridge2Meal</h2>
+    <p>An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command.</p>
+  </a>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Esmeralda C. Cabrera Ventura</span>
+    <span>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script src="articles.js"></script>
+</body>
+</html>

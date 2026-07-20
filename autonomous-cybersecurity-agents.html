@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst</title>
+<meta name="description" content="How I decomposed end-to-end security triage into five independently deployed AI services on IBM watsonx.ai, chained them under a supervising orchestrator, and traded open-ended agent autonomy for a deterministic single-pass pipeline.">
+<meta property="og:title" content="Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst">
+<meta property="og:description" content="Five specialist agents, each a deployed inference endpoint, chained under a LangGraph/ReAct supervisor — and the decision to make the pipeline deterministic rather than autonomous.">
+<meta property="og:image" content="images/acms-01-architecture.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Agentic AI &middot; Security Operations</div>
+  <h1>Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst</h1>
+  <p class="standfirst">Five specialist agents, each deployed as its own addressable inference endpoint, chained under a supervising orchestrator on IBM watsonx.ai — and the decision I would defend hardest, which was to make the pipeline deterministic rather than autonomous.</p>
+  <div class="byline">July 2026 &middot; 9 min read</div>
+
+  <p>A security operations analyst working a single alert is really doing five jobs at once. They have to understand what the activity is, work out which weaknesses would have made it possible, map the situation onto whatever control framework the organization answers to, put a number on the business risk, and then decide what gets fixed first. Each of those is a discipline. Doing all five consistently, at volume, at three in the morning, is not a thing humans sustain well.</p>
+
+  <p>The obvious response is to hand the whole job to a language model in one large prompt. I built that version first, informally, to see what it did. It produces something that looks like an analyst report and reads like one, and it is unreliable in a specific and dangerous way: the quality of the later reasoning depends on how well the earlier reasoning went, but nothing in the architecture enforces that the earlier reasoning actually happened. Ask a model for five analyses in one breath and it will give you five headings. It will not necessarily give you five analyses.</p>
+
+  <p>So I built it as six cooperating services instead — five specialists and a supervisor — and the interesting engineering is almost entirely in the seams between them.</p>
+
+  <figure>
+    <img src="images/acms-01-architecture.jpg" alt="End-to-end architecture of the autonomous cybersecurity multi-agent system">
+    <figcaption>From a raw security event, through a supervised five-stage pipeline and a trusted knowledge layer, to a finished analyst report.</figcaption>
+  </figure>
+
+  <h2>Specialization is a contract, not a personality</h2>
+
+  <p>The five agents are Threat, Vulnerability, Control-Mapping, FAIR-Risk and Prioritization. Each one is built in watsonx Agent Lab as a LangGraph agent using the ReAct pattern on Llama 3.3 70B, and each has exactly one responsibility.</p>
+
+  <ul>
+    <li><strong>Threat-Agent</strong> — takes the raw alert and returns a classification: incident type, attack pattern, indicators of compromise, confidence</li>
+    <li><strong>Vulnerability-Agent</strong> — reasons about which weaknesses, exposed assets and attack surfaces would permit the observed behaviour</li>
+    <li><strong>Control-Mapping-Agent</strong> — maps each finding onto NIST SP 800-53 and ISO 27001 controls, with mitigation and detection recommendations</li>
+    <li><strong>FAIR-Risk-Agent</strong> — applies the FAIR methodology to convert the qualitative chain into threat event frequency, loss magnitude and an overall risk position</li>
+    <li><strong>Prioritization-Agent</strong> — turns quantified risk into an executive decision layer: priority, urgency, business impact, ranked remediation actions</li>
+  </ul>
+
+  <p>What makes that decomposition load-bearing is not that each agent has a job description. It is that each agent has an <em>output contract</em>, and the next agent's input schema is that contract. The Vulnerability-Agent cannot receive a vague impression of the threat; it receives a typed JSON object with named fields, because that is the only thing the bridge between them will pass. If the Threat-Agent fails to produce a well-formed classification, the failure surfaces immediately at the boundary rather than propagating quietly as degraded reasoning three stages downstream.</p>
+
+  <blockquote>A specialist agent is only specialized if something structurally prevents it from being asked to do the neighbouring job.</blockquote>
+
+  <p>This is the same argument for interfaces that applies anywhere else in software. It just matters more here, because the failure mode of an unconstrained language model is not an exception — it is a plausible paragraph.</p>
+
+  <h2>Deploying agents rather than defining them</h2>
+
+  <p>Each specialist was deployed as an independent online AI service on watsonx Orchestrate, not left as a configured prompt inside a single workspace. That was a deliberate cost, and worth naming what it bought.</p>
+
+  <p>Every agent gets its own addressable inference endpoint, its own model binding, its own tool access, and its own scaling behaviour. The Threat-Agent can be tested, versioned or replaced without touching the four agents downstream of it. A bad deployment has a blast radius of one stage. And because each service is genuinely separate, the pipeline can later be parallelized where stages are independent, rather than being one long serial prompt that cannot be decomposed after the fact.</p>
+
+  <figure>
+    <img src="images/acms-05-deployments.jpg" alt="The watsonx Orchestrate deployment space listing six online AI services">
+    <figcaption>Six online services — the five specialists plus the Python runtime that executes the agent-to-agent calling logic.</figcaption>
+  </figure>
+
+  <p>It also forces an honest architecture. When your agents are prompts in one file, you can tell yourself you have a multi-agent system. When they are six separately deployed services that have to authenticate to talk to each other, you find out very quickly whether you actually designed the hand-offs or just described them.</p>
+
+  <h2>The bridge tools are the system</h2>
+
+  <p>The orchestrator invokes each agent through a bespoke Python function tool. Each bridge exchanges an API key for a short-lived IBM Cloud IAM token, formats the request to match that deployment's input contract, posts to the inference endpoint, and normalizes what comes back.</p>
+
+  <p>That last step is the one that earns its keep. A deployed model returns a chat completion — a message envelope wrapping content that is <em>supposed</em> to be JSON. Sometimes it is fenced in code markers. Sometimes a field arrives as a string where the schema expects a list. The bridge tools carry an explicit normalization layer that strips fencing, parses defensively, coerces known shape variations, and returns a structured error object rather than throwing when the response genuinely cannot be salvaged.</p>
+
+  <p>Every bridge was tested independently against a simulated SOC alert before it was ever wired into a chain, because debugging a five-stage pipeline where you don't know which hand-off is malformed is a bad way to spend an evening.</p>
+
+  <h2>Grounding that is structural rather than instructed</h2>
+
+  <p>Anti-hallucination work in most systems is a sentence in a prompt asking the model to be accurate. That is not a control. It is a request.</p>
+
+  <p>The grounding layer here has two halves, and neither of them relies on the model's cooperation. The first is an in-memory vector index built from a curated corpus — CVE intelligence, threat-incident patterns, NIST 800-53 controls, the FAIR framework, response playbooks — embedded with granite-embedding-278m-multilingual at 2,000-character chunks with 200-character overlap.</p>
+
+  <figure>
+    <img src="images/acms-02-retrieval.jpg" alt="A semantic query against the vector knowledge base returning ranked passages with similarity scores">
+    <figcaption>Validating retrieval before trusting it: a semantic query returns the passages it should, with scores attached.</figcaption>
+  </figure>
+
+  <p>The second half is the one I find more interesting. The orchestrator can search the live web, but only through a Google Programmable Search Engine locked to an allow-list of authoritative security domains — nist.gov, csrc.nist.gov, nvd.nist.gov, cisa.gov, attack.mitre.org and a small number of vendor peers.</p>
+
+  <figure>
+    <img src="images/acms-03-trusted-sources.jpg" alt="Programmable Search Engine configuration showing the allow-list of authoritative security domains">
+    <figcaption>The allow-list as configuration. A low-quality source is not filtered out downstream; it is never reachable.</figcaption>
+  </figure>
+
+  <p>The distinction matters. A model told to prefer authoritative sources will usually comply and occasionally won't, and you will not know which run was which. A model whose search tool physically cannot return a result from outside the allow-list has no such degree of freedom. The guarantee moved out of the instruction layer and into the infrastructure, which is where guarantees belong.</p>
+
+  <h2>The decision I would defend hardest</h2>
+
+  <p>The supervisor is a LangGraph/ReAct agent with a full toolbelt: document search over the vector store, trusted web search, five agent bridges, and a phased operating instruction telling it to retrieve knowledge, execute the pipeline, optionally validate against trusted sources, and deliver a report.</p>
+
+  <p>The idiomatic way to run that is to let ReAct do what ReAct does — reason about which tool to call next, call it, observe, repeat, until it decides it is finished. It is the pattern the framework is built around, and it demonstrates well.</p>
+
+  <p>I took the autonomy out. The five bridge calls were consolidated into a single <span class="m">run_full_pipeline</span> tool that executes the agents in a fixed sequence within one pass and returns one combined structured report.</p>
+
+  <blockquote>Autonomy is a feature when the path is unknown. When the path is known, it is a source of variance you are paying for twice.</blockquote>
+
+  <p>The order of a security triage is not in question. Threat before vulnerability, vulnerability before control mapping, controls before quantified risk, risk before prioritization — that sequence is the domain, not a search problem. Letting a reasoning loop rediscover it on every invocation buys nothing and costs three things: latency, token spend that varies run to run, and the possibility that on some invocation the loop skips a stage, repeats one, or terminates early. Every one of those is a bad outcome in a system whose entire purpose is producing a consistent, defensible analysis.</p>
+
+  <figure>
+    <img src="images/acms-04-pipeline.jpg" alt="Testing the single-pass pipeline tool against a simulated alert and receiving a complete combined result">
+    <figcaption>One call in, five stages executed in fixed order, one schema-compliant object out — repeatably.</figcaption>
+  </figure>
+
+  <p>So the supervisor keeps its judgement where judgement is genuinely required — deciding what to retrieve, whether a finding warrants validation against a trusted source, how to narrate the result for an executive reader — and loses it where the answer was never in doubt. Deterministic where the domain is deterministic; agentic where it isn't.</p>
+
+  <h2>Security as a build constraint</h2>
+
+  <p>A system that operates on security alerts and was always going to be published as a portfolio artefact has to be built as though both of those things are true from the first commit, not audited afterwards.</p>
+
+  <ul>
+    <li>The Google API key is scoped to the Custom Search API alone, in a dedicated cloud project provisioned for this integration and nothing else</li>
+    <li>IBM Cloud access runs on short-lived IAM bearer tokens exchanged from rotatable API keys, never on long-lived static credentials embedded in tool code</li>
+    <li>Each agent is an isolated deployment, which bounds the blast radius of any single compromised or misbehaving service</li>
+    <li>Every credential, bearer token, inference endpoint and deployment identifier is permanently redacted in the published documentation, and the underlying credentials rotated regardless</li>
+  </ul>
+
+  <p>The redaction discipline is worth dwelling on for a second, because it is the part people skip. A build walkthrough is a genuinely useful artefact — and a screenshot of a working system is also a screenshot of its attack surface. Publishing one without treating the other as a real exposure is how portfolios become incidents.</p>
+
+  <h2>What it does, and what it deliberately doesn't</h2>
+
+  <p>End to end, the system takes one raw alert and returns an executive summary, agent-by-agent analysis, quantified risk, standards-aligned control mapping, and a ranked set of remediation actions. Repeated runs produce consistent, schema-compliant output at the agent level, the pipeline level and the orchestrator level.</p>
+
+  <figure>
+    <img src="images/acms-06-report.jpg" alt="The final analyst report produced by the orchestrator">
+    <figcaption>The deliverable. Not a chat transcript — a decision-support document an analyst can act on or argue with.</figcaption>
+  </figure>
+
+  <p>What it does not do is act. Every output is a recommendation, and a human decides. That boundary is where the next increment lives, and it is the part I want to build most carefully: scoped connectors into identity providers, firewalls and endpoint protection so an approved recommendation can actually be applied — behind a mandatory approval gate, with full audit logging and rollback, and with explicit protection for the legitimate users who need continued access. The goal is least privilege, not over-blocking. A remediation system that locks out the finance team at 2am has not reduced risk; it has relocated it.</p>
+
+  <p>Alongside that: live SIEM and SOAR feeds so the pipeline triggers on incoming alerts rather than pasted ones, parallelization of the independent stages, confidence scoring, and a feedback loop that captures analyst approvals, edits and rejections so the system's risk scoring measurably improves against real decisions rather than assumptions.</p>
+
+  <h2>What the build actually taught me</h2>
+
+  <p>The parts of this that were hard were not the parts that sound hard. Getting a large model to produce competent threat analysis is close to free now. What took the work was everything around it: the contract at each hand-off, the normalization layer that absorbs a model's formatting whims without hiding real failures, the search tool that cannot reach a bad source, the authentication flow that makes six services into one system.</p>
+
+  <blockquote>In an agentic system, the intelligence is commodity. The engineering is in constraining it.</blockquote>
+
+  <hr>
+
+  <p class="mono stackline">IBM watsonx.ai &middot; watsonx Agent Lab &middot; watsonx Orchestrate &middot; LangGraph &middot; ReAct &middot; Llama 3.3 70B &middot; Vector RAG &middot; IBM Cloud IAM &middot; Google Custom Search API &middot; Python</p>
+
+  <p class="note">Built as an IBM SkillsBuild capstone. The full technical report, documenting every build stage with captioned screenshots, is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

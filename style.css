@@ -1,0 +1,137 @@
+/* ==========================================================
+   Shared styles. Edit tokens here and every page updates.
+   ========================================================== */
+:root{
+  --ink:#10231C;
+  --ink-soft:#41544C;
+  --paper:#EDEFE9;
+  --card:#FBFCF8;
+  --rule:#C3C9BE;
+  --rule-soft:#DDE1D8;
+  --fresh:#9FBB16;
+  --steel:#5B7168;
+  --display:"Archivo",-apple-system,sans-serif;
+  --body:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:19px; line-height:1.62;
+}
+.wrap{max-width:760px; margin:0 auto; padding:0 28px}
+.wrap.wide{max-width:960px}
+h1,h2,h3,h4{font-family:var(--display); font-weight:800; line-height:1.08; margin:0}
+p{margin:0 0 1.05em}
+a{color:var(--ink); text-decoration:none; border-bottom:1.5px solid var(--fresh)}
+a:hover{background:rgba(159,187,22,.18)}
+a:focus-visible{outline:3px solid var(--fresh); outline-offset:2px}
+.mono{font-family:var(--mono); font-size:.66rem; letter-spacing:.16em; text-transform:uppercase}
+.m{font-family:var(--mono); font-size:.84em}
+
+/* ---------- site header ---------- */
+.site-head{border-bottom:2px solid var(--ink); margin-bottom:0}
+.site-head .wrap{display:flex; justify-content:space-between; align-items:center;
+  gap:18px; padding-top:20px; padding-bottom:20px; flex-wrap:wrap}
+.site-head .name{font-family:var(--display); font-weight:800; font-size:1.05rem;
+  letter-spacing:-.01em; border:0}
+.site-head .name:hover{background:none; color:var(--steel)}
+.site-head nav{display:flex; gap:20px}
+.site-head nav a{font-family:var(--mono); font-size:.66rem; letter-spacing:.16em;
+  text-transform:uppercase; border:0; padding-bottom:2px}
+.site-head nav a:hover{border-bottom:1.5px solid var(--fresh); background:none}
+
+/* ---------- home hero ---------- */
+.hero{padding:76px 0 56px; border-bottom:1px solid var(--rule)}
+.hero .eyebrow{font-family:var(--mono); font-size:.64rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--steel); margin-bottom:18px}
+/* Sized for a short declarative headline. If you swap in a longer sentence,
+   drop the clamp max to about 2.9rem and widen max-width to 26ch. */
+.hero h1{font-size:clamp(2rem,5vw,3.35rem); letter-spacing:-.032em; max-width:19ch}
+.hero .tag{font-size:1.12rem; color:var(--ink-soft); max-width:52ch; margin-top:22px}
+.hero .links{margin-top:30px; display:flex; gap:22px; flex-wrap:wrap}
+.hero .links a{font-family:var(--mono); font-size:.68rem; letter-spacing:.14em;
+  text-transform:uppercase}
+
+/* ---------- about block ---------- */
+.about{border-bottom:1px solid var(--rule); padding-bottom:36px}
+.about p{max-width:64ch}
+.about p:last-child{margin-bottom:0}
+.about .elsewhere{font-family:var(--mono); font-size:.68rem; letter-spacing:.14em;
+  text-transform:uppercase; padding-top:8px}
+
+/* ---------- small print ---------- */
+.note{font-size:.95rem; color:var(--ink-soft)}
+.stackline{color:var(--steel)}
+
+/* ---------- entry list ---------- */
+.section-label{font-family:var(--mono); font-size:.64rem; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--steel); padding:52px 0 4px}
+.entry{display:block; border-bottom:1px solid var(--rule); padding:26px 0; border-left:0; border-right:0; border-top:0}
+.entry:hover{background:transparent}
+.entry:hover h2{color:var(--steel)}
+.entry .date{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  color:var(--steel); text-transform:uppercase}
+.entry h2{font-size:1.45rem; letter-spacing:-.022em; margin:8px 0 8px}
+.entry p{font-size:.98rem; color:var(--ink-soft); margin:0; max-width:60ch}
+
+/* ---------- article ---------- */
+article{padding:56px 0 20px}
+article .kicker{font-family:var(--mono); font-size:.64rem; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--steel)}
+article h1{font-size:clamp(2rem,5.6vw,3.2rem); letter-spacing:-.035em; margin:16px 0 0}
+article .standfirst{font-size:1.2rem; color:var(--ink-soft); margin-top:20px; max-width:52ch}
+article .byline{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--steel); margin-top:30px;
+  border-top:1px solid var(--rule); padding-top:14px}
+article h2{font-size:1.55rem; letter-spacing:-.022em; margin:52px 0 14px}
+article h3{font-size:1.1rem; text-transform:uppercase; letter-spacing:-.005em; margin:34px 0 10px}
+article ul{margin:0 0 1.2em; padding-left:0; list-style:none}
+article ul li{position:relative; padding-left:26px; margin-bottom:.55em}
+article ul li::before{content:""; position:absolute; left:0; top:.66em;
+  width:12px; height:2px; background:var(--fresh)}
+blockquote{margin:36px 0; padding:4px 0 4px 24px; border-left:6px solid var(--fresh);
+  font-family:var(--display); font-weight:700; font-size:1.26rem; line-height:1.32;
+  letter-spacing:-.015em; max-width:34ch}
+figure{margin:36px 0}
+figure img{width:100%; display:block; border:1px solid var(--rule); background:#fff}
+figcaption{margin-top:9px; font-size:.86rem; color:var(--ink-soft); line-height:1.45}
+hr{border:0; border-top:1px solid var(--rule); margin:44px 0}
+
+/* ---------- footer ---------- */
+.site-foot{background:var(--ink); color:#C6D2CB; margin-top:72px; padding:44px 0}
+.site-foot .wrap{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap}
+.site-foot a{color:var(--paper); border-bottom-color:var(--fresh)}
+.site-foot .mono{color:var(--steel)}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .hero{padding:48px 0 40px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+
+/* ---------- archive page + pagination ---------- */
+.archive-head{padding:64px 0 40px; border-bottom:1px solid var(--rule)}
+.archive-head .eyebrow{font-family:var(--mono); font-size:.64rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--steel); margin-bottom:18px}
+.archive-head h1{font-size:clamp(2rem,5vw,3.1rem); letter-spacing:-.032em}
+.archive-head .tag{font-size:1.08rem; color:var(--ink-soft); max-width:54ch; margin-top:20px}
+
+/* the "Articles" label on the home page is a link to the archive */
+.section-label a{border:0; color:var(--steel)}
+.section-label a:hover{background:none; color:var(--ink)}
+
+.count{color:var(--steel); padding:34px 0 0; margin:0}
+
+.more-link{padding-top:26px; margin:0}
+.more-link a{font-family:var(--mono); font-size:.68rem; letter-spacing:.14em;
+  text-transform:uppercase}
+
+.pager{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  padding:30px 0 6px; border-bottom:1px solid var(--rule)}
+.pager-link{font-family:var(--mono); font-size:.68rem; letter-spacing:.14em;
+  text-transform:uppercase}
+.pager-link.is-off{color:var(--rule); border-bottom:1.5px solid transparent}
