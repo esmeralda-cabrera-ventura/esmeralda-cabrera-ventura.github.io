@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autonomous Cybersecurity Multi-Agent System — Engineering Dossier</title>
+<meta name="description" content="Six deployed AI services on IBM watsonx.ai: five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,400..900;1,75..125,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10231C;
+  --ink-soft:#41544C;
+  --paper:#EDEFE9;
+  --card:#FBFCF8;
+  --rule:#C3C9BE;
+  --rule-soft:#DDE1D8;
+  --fresh:#9FBB16;
+  --cobalt:#12557E;
+  --amber:#BE7C22;
+  --clay:#9E4430;
+  --steel:#5B7168;
+  --display:"Archivo",-apple-system,sans-serif;
+  --body:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --wrap:940px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:19px; line-height:1.62;
+  font-variation-settings:"opsz" 18;
+}
+.wrap{max-width:var(--wrap); margin:0 auto; padding:0 28px}
+
+/* ---------- utility type ---------- */
+.mono{font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase}
+.m{font-family:var(--mono); font-size:.84em; letter-spacing:0}
+.eyebrow{font-family:var(--mono); font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--steel)}
+h1,h2,h3,h4{font-family:var(--display); font-weight:800; line-height:1.05; margin:0}
+p{margin:0 0 1.05em}
+a{color:inherit}
+
+/* ---------- cover ---------- */
+.cover{padding:64px 0 40px; border-bottom:6px solid var(--ink)}
+.cover .stamp{
+  display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  border-top:2px solid var(--ink); border-bottom:1px solid var(--rule);
+  padding:10px 0; margin-bottom:46px;
+}
+.cover h1{
+  font-size:clamp(2.3rem,7.6vw,5.3rem);
+  font-variation-settings:"wdth" 106;
+  letter-spacing:-.035em; text-transform:uppercase;
+}
+.cover h1 .two{color:var(--cobalt)}
+.deck{
+  font-size:clamp(1.15rem,2.4vw,1.5rem); line-height:1.42; max-width:32ch;
+  margin:26px 0 0; color:var(--ink); font-variation-settings:"opsz" 36;
+}
+.byline{margin-top:44px; border-top:1px solid var(--rule); padding-top:16px;
+  display:grid; grid-template-columns:1fr 1fr; gap:22px}
+.byline .name{font-family:var(--display); font-weight:800; font-size:1.32rem; letter-spacing:-.01em}
+.byline .role{color:var(--ink-soft); font-size:.95rem; line-height:1.45; margin-top:4px}
+
+/* ---------- facts panel ---------- */
+.facts{
+  background:var(--card); border:2.5px solid var(--ink); margin:46px 0 0;
+  padding:0 20px 18px; font-family:var(--display);
+}
+.facts .fhead{font-size:2.1rem; font-weight:900; letter-spacing:-.03em;
+  text-transform:uppercase; padding:14px 0 6px; font-variation-settings:"wdth" 92}
+.facts .fsub{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--steel); padding-bottom:10px}
+.hr-fat{border:0; border-top:11px solid var(--ink); margin:0}
+.hr-mid{border:0; border-top:4px solid var(--ink); margin:0}
+.hr-thin{border:0; border-top:1px solid var(--rule); margin:0}
+.frow{display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:7px 0}
+.frow .lbl{font-weight:700; font-size:.94rem; letter-spacing:-.005em}
+.frow .lbl small{font-weight:400; font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.12em; color:var(--steel); display:block; margin-top:2px; text-transform:uppercase}
+.frow .val{font-family:var(--mono); font-size:.9rem; font-weight:600; text-align:right; white-space:nowrap}
+.frow.big .lbl{font-size:1.5rem; font-weight:900; letter-spacing:-.02em}
+.frow.big .val{font-size:1.5rem; font-weight:600}
+.frow.indent{padding-left:16px}
+.frow.indent .lbl{font-weight:400; font-size:.88rem}
+.fnote{font-family:var(--mono); font-size:.6rem; line-height:1.7; letter-spacing:.03em;
+  color:var(--steel); padding-top:12px; text-transform:none}
+
+/* ---------- sections ---------- */
+section{padding:64px 0; border-top:1px solid var(--rule)}
+section:first-of-type{border-top:0}
+.shead{display:grid; grid-template-columns:78px 1fr; gap:22px; align-items:start; margin-bottom:26px}
+.shead .lot{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; color:var(--steel);
+  border-top:3px solid var(--ink); padding-top:8px; line-height:1.5}
+.shead h2{font-size:clamp(1.75rem,4.2vw,2.7rem); letter-spacing:-.03em;
+  font-variation-settings:"wdth" 100; text-transform:uppercase; padding-top:4px}
+.shead .sub{color:var(--ink-soft); font-size:1.02rem; margin-top:10px; max-width:52ch}
+.body{max-width:66ch}
+.body h3{font-size:1.18rem; letter-spacing:-.01em; margin:34px 0 10px;
+  text-transform:uppercase; font-variation-settings:"wdth" 92; font-weight:800}
+.body h3:first-child{margin-top:0}
+.body ul{margin:0 0 1.1em; padding-left:0; list-style:none}
+.body ul li{position:relative; padding-left:26px; margin-bottom:.5em}
+.body ul li::before{content:""; position:absolute; left:0; top:.66em;
+  width:12px; height:2px; background:var(--cobalt)}
+strong{font-weight:650}
+.lede{font-size:1.16rem; line-height:1.55; font-variation-settings:"opsz" 30}
+
+.conviction{
+  border-left:6px solid var(--cobalt); padding:6px 0 6px 24px; margin:34px 0;
+  font-family:var(--display); font-weight:700; font-size:1.28rem; line-height:1.3;
+  letter-spacing:-.015em; max-width:36ch;
+}
+
+/* ---------- data table ---------- */
+table{width:100%; border-collapse:collapse; margin:26px 0; font-size:.92rem}
+th{font-family:var(--mono); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase;
+  text-align:left; color:var(--steel); border-bottom:2px solid var(--ink); padding:0 12px 8px 0; vertical-align:bottom}
+td{border-bottom:1px solid var(--rule-soft); padding:11px 12px 11px 0; vertical-align:top; line-height:1.45}
+td:first-child{font-family:var(--display); font-weight:700; letter-spacing:-.01em; width:31%}
+td.m{font-family:var(--mono); font-size:.78rem; letter-spacing:.02em}
+
+/* ---------- status chips ---------- */
+.chip{display:inline-block; font-family:var(--mono); font-size:.58rem; letter-spacing:.13em;
+  text-transform:uppercase; padding:3px 8px 2px; border:1.5px solid; white-space:nowrap; vertical-align:2px}
+.c-ship{color:#3F5A0E; border-color:var(--fresh); background:rgba(159,187,22,.16)}
+.c-proto{color:var(--amber); border-color:var(--amber); background:rgba(190,124,34,.10)}
+.c-def{color:var(--clay); border-color:var(--clay); background:rgba(158,68,48,.09)}
+
+/* ---------- pipeline ---------- */
+.pipe{margin:30px 0; border-top:3px solid var(--ink)}
+.stage{display:grid; grid-template-columns:52px 1fr; gap:20px;
+  border-bottom:1px solid var(--rule); padding:18px 0}
+.stage .n{font-family:var(--mono); font-size:.72rem; color:var(--steel); padding-top:5px}
+.stage h4{font-size:1.02rem; text-transform:uppercase; letter-spacing:-.005em;
+  font-variation-settings:"wdth" 90; margin-bottom:5px}
+.stage p{font-size:.96rem; margin:0; color:var(--ink-soft); line-height:1.5; max-width:60ch}
+.stage .io{font-family:var(--mono); font-size:.62rem; letter-spacing:.06em; color:var(--cobalt);
+  margin-top:8px; line-height:1.6; text-transform:none}
+
+/* ---------- signal grid ---------- */
+.signals{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin:28px 0}
+.signal{background:var(--card); padding:16px 16px 18px}
+.signal .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel)}
+.signal .v{font-family:var(--display); font-weight:800; font-size:1.02rem; letter-spacing:-.015em;
+  margin-top:7px; line-height:1.2; text-transform:uppercase; font-variation-settings:"wdth" 90}
+.signal .d{font-size:.86rem; color:var(--ink-soft); margin-top:7px; line-height:1.45}
+
+/* ---------- gallery ---------- */
+.gal{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:26px; margin-top:12px}
+figure{margin:0}
+figure img{width:100%; display:block; border:1px solid var(--rule); background:#fff}
+figcaption{margin-top:9px; font-size:.86rem; color:var(--ink-soft); line-height:1.45}
+figcaption b{font-family:var(--display); font-weight:700; text-transform:uppercase;
+  font-size:.72rem; letter-spacing:.06em; display:block; color:var(--ink); margin-bottom:2px}
+.gal .wide{grid-column:1/-1}
+
+/* ---------- tally ---------- */
+.tally{display:flex; gap:0; border:2px solid var(--ink); margin:26px 0; flex-wrap:wrap}
+.tally div{flex:1 1 120px; padding:18px 16px; border-right:1px solid var(--rule)}
+.tally div:last-child{border-right:0}
+.tally .n{font-family:var(--display); font-weight:900; font-size:2.3rem; letter-spacing:-.04em; line-height:1}
+.tally .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel); margin-top:8px}
+
+/* ---------- closing ---------- */
+.closing{background:var(--ink); color:var(--paper); margin-top:64px}
+.closing .wrap{padding-top:56px; padding-bottom:56px}
+.closing h2{color:var(--paper); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:-.03em; text-transform:uppercase}
+.closing p{color:#C6D2CB; max-width:60ch}
+.closing .eyebrow{color:#8FBEDD}
+.closing hr{border:0; border-top:1px solid #2C4237; margin:26px 0}
+.closing ul{margin:0; padding-left:0; list-style:none; max-width:62ch}
+.closing ul li{position:relative; padding-left:26px; margin-bottom:.55em; color:#C6D2CB}
+.closing ul li::before{content:""; position:absolute; left:0; top:.66em; width:12px; height:2px; background:#8FBEDD}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .shead{grid-template-columns:1fr; gap:10px}
+  .shead .lot{border-top:2px solid var(--ink); padding-top:6px}
+  .byline{grid-template-columns:1fr}
+  .cover{padding-top:36px}
+}
+@media print{
+  body{background:#fff}
+  section{page-break-inside:auto; padding:34px 0}
+  figure,.facts,.tally,.signals{page-break-inside:avoid}
+  .closing{background:#fff; color:var(--ink)}
+  .closing h2,.closing p,.closing ul li{color:var(--ink)}
+}
+@media (prefers-reduced-motion:no-preference){
+  .cover h1,.deck,.byline{animation:rise .7s cubic-bezier(.2,.7,.3,1) both}
+  .deck{animation-delay:.09s} .byline{animation-delay:.16s}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+}
+</style>
+</head>
+<body>
+<div style="border-bottom:2px solid #10231C;background:#EDEFE9">
+<div style="max-width:940px;margin:0 auto;padding:18px 28px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
+<a href="index.html" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:1.05rem;color:#10231C;text-decoration:none;letter-spacing:-.01em">Esmeralda C. Cabrera Ventura</a>
+<span style="display:flex;gap:20px;flex-wrap:wrap">
+<a href="articles.html" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">&larr; Articles</a>
+<a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">Portfolio</a>
+<a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">LinkedIn</a>
+</span>
+</div></div>
+
+
+<!-- ============ COVER ============ -->
+<header class="wrap cover">
+  <div class="stamp">
+    <span class="mono">Engineering Dossier</span>
+    <span class="mono">Agentic AI &middot; IBM watsonx</span>
+    <span class="mono">SkillsBuild Capstone</span>
+  </div>
+
+  <h1>Autonomous Cybersecurity <span class="two">Multi-Agent System</span></h1>
+
+  <p class="deck">Six deployed AI services that turn one raw security alert into an executive-ready, standards-aligned analyst report.</p>
+
+  <div class="byline">
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Architecture &amp; Implementation</div>
+      <div class="name">Esmeralda C. Cabrera Ventura</div>
+      <div class="role">AI Engineer &middot; Multi-Agent Systems &middot; Retrieval &amp; Grounding &middot; Secure Cloud Integration</div>
+    </div>
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Scope of this document</div>
+      <div class="role">A technical account of the system I designed and built: the five-stage reasoning pipeline, the trusted hybrid grounding layer, the authenticated agent-to-agent integration, and the decision to trade open-ended autonomy for a deterministic single pass.</div>
+    </div>
+  </div>
+
+  <!-- SIGNATURE PANEL -->
+  <div class="facts">
+    <div class="fhead">Engineering Facts</div>
+    <div class="fsub">Per deployed system &middot; IBM watsonx Orchestrate (Developer edition)</div>
+    <hr class="hr-fat">
+    <div class="frow big"><span class="lbl">Online AI services</span><span class="val">6</span></div>
+    <hr class="hr-mid">
+    <div class="frow"><span class="lbl">Specialist agents<small>each independently addressable</small></span><span class="val">5</span></div>
+    <div class="frow indent"><span class="lbl">Supervising orchestrator</span><span class="val">1</span></div>
+    <div class="frow indent"><span class="lbl">Python tools runtime</span><span class="val">1</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Orchestration toolbelt<small>5 bridges + pipeline + doc search + web search</small></span><span class="val">8</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Foundation model<small>all six services</small></span><span class="val">Llama 3.3 70B</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Curated knowledge files<small>2,000-char chunks / 200 overlap</small></span><span class="val">10</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Governance frameworks encoded<small>NIST 800-53, ISO 27001, CIS, FAIR, ATT&amp;CK</small></span><span class="val">5</span></div>
+    <hr class="hr-mid">
+    <div class="frow big"><span class="lbl">ReAct recursion on the pipeline path</span><span class="val">0</span></div>
+    <hr class="hr-fat">
+    <div class="fnote">
+      The five specialists execute in a fixed sequence inside one tool call rather than as an
+      open-ended agent loop. Unbounded autonomy was traded deliberately for reliability,
+      schema-compliant output and predictable cost. The orchestrator keeps its ReAct reasoning
+      for the surrounding work: retrieval, optional source validation, and report synthesis.
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 01 THESIS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">01<br>Thesis</div>
+    <div>
+      <h2>Agents as services, not prompts</h2>
+      <p class="sub">Why five deployed endpoints beat one large instruction, and what that choice cost.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p class="lede">Security teams face a relentless stream of alerts, and each one ideally demands a multi-disciplinary investigation: understand the threat, identify the exploited weaknesses, map the situation to governance frameworks, quantify the business risk, and decide what to do first. Sustaining that consistently, at speed, with defensible rigour is hard for humans.</p>
+
+    <p>It is also hard for a single model. Ask one prompt to do all five disciplines at once and the output degrades in a characteristic way: shallow in every dimension, inconsistent between runs, and prone to inventing the specifics — a control identifier, a CVE, a loss figure — precisely where specificity matters most.</p>
+
+    <p>So I decomposed the work. Five specialist agents, each with a single well-defined responsibility and a strict output contract, chained so that every agent reasons over the validated structured output of the one before it. Each was built and <strong>deployed as its own online AI service with its own addressable inference endpoint</strong>, rather than existing as a section of a long prompt. That distinction is the whole architecture: it is what makes this a genuine multi-agent system rather than a monolith wearing five hats.</p>
+
+    <div class="conviction">Specialization is only real if the specialists are separately deployable. Otherwise it is formatting.</div>
+
+    <p>The cost of that decision is honest and worth naming: six services to deploy, authenticate, version and keep online, plus the bespoke integration code that lets them call one another. The rest of this document is largely an account of paying that cost properly.</p>
+  </div>
+</section>
+
+<!-- ============ 02 SYSTEM ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">02<br>System</div>
+    <div>
+      <h2>Supervisor-orchestrator architecture</h2>
+      <p class="sub">One intelligent orchestrator above a deterministic pipeline and a trusted knowledge layer, exposing the whole system through a single interface.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>A single Supervisor-Orchestrator-Agent fronts the system. It is a LangGraph/ReAct agent on Llama 3.3 70B, governed by a phased operating instruction: retrieve grounding knowledge, execute the pipeline, optionally validate against trusted sources, then deliver a complete analyst report. Everything beneath it is either a specialist service or a source of grounded evidence.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Component</th><th>Technology</th><th>Responsibility I owned</th></tr></thead>
+    <tbody>
+      <tr><td>Orchestrator</td><td class="m">watsonx Agent Lab &middot; LangGraph &middot; ReAct</td><td>Phased operating instruction, toolbelt composition, report synthesis, and the boundary between reasoning and fixed execution</td></tr>
+      <tr><td>Specialist agents</td><td class="m">Agent Lab &middot; Llama-3-3-70b-instruct</td><td>Five agent instructions, each with a single responsibility and a strict JSON output contract</td></tr>
+      <tr><td>Deployment</td><td class="m">watsonx Orchestrate (Developer edition)</td><td>Six online AI-service deployments, deployment-space organization, naming and topology</td></tr>
+      <tr><td>Vector retrieval</td><td class="m">In-memory index &middot; granite-embedding-278m</td><td>Corpus curation, chunking and overlap strategy, retrieval depth, and validation of returned passages</td></tr>
+      <tr><td>Trusted web search</td><td class="m">Google Programmable Search Engine</td><td>The authoritative-domain allow-list, SafeSearch configuration, and binding it into watsonx</td></tr>
+      <tr><td>Integration</td><td class="m">Custom Python function tools &middot; IBM Cloud IAM</td><td>Five agent-to-agent bridge tools plus the single-pass pipeline tool: authentication, request shaping, response parsing and normalization</td></tr>
+      <tr><td>Runtime</td><td class="m">agent-tools-runtime (Python engine)</td><td>The deployed execution environment for all custom tool logic</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p>The orchestrator's toolbelt has eight entries: five agent bridges, the consolidated <span class="m">run_full_pipeline</span> tool, document search against the knowledge base, and trusted web search. Giving it both the individual bridges and the consolidated pipeline was intentional &mdash; the pipeline is the normal path, and the individual bridges remain available for targeted re-analysis of a single stage without re-running the whole chain.</p>
+  </div>
+</section>
+
+<!-- ============ 03 PIPELINE ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">03<br>Pipeline</div>
+    <div>
+      <h2>Five stages, one contract each</h2>
+      <p class="sub">A directed chain in which every agent enriches the structured output of its predecessor.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>The five specialists form a fixed sequence. Raw alert data is progressively transformed into a complete, prioritized, standards-aligned risk picture, and each hand-off is a typed JSON document rather than prose. That constraint is what keeps stage four from having to re-interpret stage two's English.</p>
+  </div>
+
+  <div class="pipe">
+    <div class="stage"><div class="n">01</div><div>
+      <h4>Threat-Agent</h4>
+      <p>Ingests the raw security alert and returns a structured classification of the incident &mdash; threat summary, incident type, attack pattern and technique, indicators of compromise, likely actor, severity and a confidence value.</p>
+      <div class="io">in: alert, asset, history, grounded_context &rarr; out: threat_summary, iocs, attack_technique, severity, confidence</div>
+    </div></div>
+    <div class="stage"><div class="n">02</div><div>
+      <h4>Vulnerability-Agent</h4>
+      <p>Reasons about which weaknesses, exposed assets and attack surfaces could have enabled the observed activity, and how severe that exposure is.</p>
+      <div class="io">out: possible_vulnerabilities, possible_cves, affected_assets, attack_surface, vulnerability_severity</div>
+    </div></div>
+    <div class="stage"><div class="n">03</div><div>
+      <h4>Control-Mapping-Agent</h4>
+      <p>Maps each finding onto recognised security controls and frameworks &mdash; NIST SP 800-53, ISO 27001 and CIS &mdash; and distinguishes preventative, detective and corrective controls, returning mitigation and detection recommendations with a remediation priority.</p>
+      <div class="io">out: mapped_controls[control_type, control_name, framework], mitigation_recommendations, detection_recommendations</div>
+    </div></div>
+    <div class="stage"><div class="n">04</div><div>
+      <h4>FAIR-Risk-Agent</h4>
+      <p>Applies the FAIR methodology to convert the qualitative chain into quantitative estimates: threat event frequency, loss magnitude, financial risk estimate, risk category and an overall risk level, each with a stated justification.</p>
+      <div class="io">out: risk_level, likelihood, impact, financial_risk_estimate, risk_category, justification</div>
+    </div></div>
+    <div class="stage"><div class="n">05</div><div>
+      <h4>Prioritization-Agent</h4>
+      <p>Converts quantified risk into an executive decision layer &mdash; response priority, urgency, business impact, execution scope and a ranked set of concrete recommended actions.</p>
+      <div class="io">out: response_priority, urgency, recommended_actions[], business_impact, decision_summary</div>
+    </div></div>
+  </div>
+
+  <div class="body">
+    <p>Stage three is where the system stops being a summarizer. Mapping an observed behaviour onto a named control in a named framework is a claim that can be checked by someone who knows the framework, and that is exactly the property that makes the output usable in a governance conversation rather than only in a chat window. It is also the stage that most needs grounding, which is the subject of the next section.</p>
+  </div>
+</section>
+
+<!-- ============ 04 GROUNDING ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">04<br>Grounding</div>
+    <div>
+      <h2>Trusted hybrid retrieval</h2>
+      <p class="sub">Making fabricated or low-quality information structurally difficult to introduce, rather than merely discouraged.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>Instructing a model not to hallucinate is not a control. The grounding layer is built so that the sources available to the system are constrained by configuration, in two complementary ways.</p>
+
+    <h3>The vector knowledge base</h3>
+    <p>A curated corpus of cybersecurity reference material &mdash; CVE intelligence, threat-incident patterns, NIST 800-53 controls, the FAIR framework and response playbooks &mdash; embedded into an in-memory vector index using <span class="m">granite-embedding-278m-multilingual</span>. Ten files, 2,000-character chunks with 200-character overlap, retrieval depth of three.</p>
+    <p>Those parameters were chosen for the shape of the material rather than accepted as defaults. Control documentation is dense and self-referential; chunks that are too small sever a control from its description, and no overlap loses the ones that straddle a boundary. Retrieval was validated directly against the index &mdash; a semantic query for credential stuffing against a privileged login returns remediation playbooks, threat-incident patterns and the relevant NIST authentication controls, ranked with similarity scores.</p>
+
+    <h3>The trusted web search</h3>
+    <p>Beyond the internal store, the orchestrator can search the live web &mdash; but only across an allow-list of authoritative security domains, enforced through a Google Programmable Search Engine. The permitted set includes <span class="m">nist.gov</span>, <span class="m">csrc.nist.gov</span>, <span class="m">nvd.nist.gov</span>, <span class="m">cisa.gov</span>, <span class="m">attack.mitre.org</span> and a small number of vendor security sources.</p>
+
+    <div class="conviction">The allow-list is the anti-hallucination control. Everything else is a request.</div>
+
+    <p>This is the difference between a system that is told to prefer good sources and a system that cannot reach a bad one. A low-quality or adversarial page is not outranked; it is not in the index the search engine is permitted to return from. That property survives model changes, prompt drift and future maintainers who have not read the instruction.</p>
+  </div>
+
+  <div class="signals">
+    <div class="signal"><div class="k">Layer 01</div><div class="v">Vector RAG</div><div class="d">Ten curated files, in-memory index, validated by direct semantic query.</div></div>
+    <div class="signal"><div class="k">Layer 02</div><div class="v">Allow-listed web</div><div class="d">Live retrieval restricted to authoritative security domains, SafeSearch on.</div></div>
+    <div class="signal"><div class="k">Layer 03</div><div class="v">Typed contracts</div><div class="d">Each stage must emit schema-compliant JSON, so downstream stages cannot inherit prose.</div></div>
+    <div class="signal"><div class="k">Layer 04</div><div class="v">Optional validation</div><div class="d">The orchestrator may verify high-value claims against trusted sources before reporting.</div></div>
+  </div>
+</section>
+
+<!-- ============ 05 INTEGRATION ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">05<br>Integration</div>
+    <div>
+      <h2>The connective tissue</h2>
+      <p class="sub">Five bespoke bridge tools, and the authentication flow underneath every inter-agent call.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>Deploying five agents does not make them a system. What makes them a system is the code that lets one call another, and that code is where most of the engineering time actually went.</p>
+    <p>Each deployed agent exposes a secured REST inference endpoint with a defined input contract &mdash; a messages array. The orchestrator reaches each one through a bespoke Python function tool implementing the same five-step pattern.</p>
+
+    <ul>
+      <li><strong>Authenticate</strong> &mdash; exchange an IBM Cloud API key for a short-lived IAM bearer token against the identity endpoint</li>
+      <li><strong>Shape</strong> &mdash; build the payload to match that deployment's exact expected input contract</li>
+      <li><strong>Call</strong> &mdash; post to the agent's inference endpoint with the bearer token and correct content type</li>
+      <li><strong>Parse</strong> &mdash; extract the model's message content and recover the JSON object from it</li>
+      <li><strong>Normalize</strong> &mdash; coerce the result into the schema the next stage expects, with defensive fallbacks when a field is missing or the response is not the expected structure</li>
+    </ul>
+
+    <p>The normalization step is the one that is easy to skip and expensive to skip. A language model asked for strict JSON will comply almost always &mdash; and "almost always" across five chained stages compounds into a materially unreliable pipeline. Wrapping each response in a parse-and-coerce layer with explicit fallbacks is what converts five probabilistic services into one dependable chain. Every bridge tool was independently tested against a simulated SOC alert and confirmed to return well-typed output before being wired into the chain.</p>
+
+    <h3>Why tokens rather than keys at the call site</h3>
+    <p>Calling a deployed watsonx service requires an IAM bearer token exchanged from an API key. Doing that exchange inside the tool, per invocation, keeps a long-lived credential out of the request path and means the thing actually travelling with each call is short-lived. Token acquisition is factored into a reusable helper shared by all the bridges rather than reimplemented five times &mdash; the same reason any repeated authentication logic gets factored out: so it can be fixed once.</p>
+  </div>
+</section>
+
+<!-- ============ 06 DETERMINISM ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">06<br>Determinism</div>
+    <div>
+      <h2>Trading autonomy for reliability</h2>
+      <p class="sub">The single-pass pipeline tool, and the case for bounding an agent that could have been left free.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>With five bridge tools available, the obvious design is to let the orchestrator decide when to call each one &mdash; that is what ReAct is for. It is also the design that produces a system whose behaviour you cannot predict, whose cost varies per run, and whose failures are difficult to reproduce.</p>
+    <p>So the five bridge calls were consolidated into a single <span class="m">run_full_pipeline</span> tool. It executes the agents in a fixed sequence within one pass, threading each stage's output into the next, and returns one combined structured report with defensive fallbacks at every join. The orchestrator calls it once.</p>
+
+    <div class="conviction">Autonomy is not free. On the path where correctness matters most, I spent it on determinism instead.</div>
+
+    <p>The orchestrator keeps its ReAct reasoning for the work that genuinely benefits from it: deciding what to retrieve from the knowledge base, judging whether a claim warrants validation against trusted sources, and synthesizing the final narrative. What it does not get to improvise is the analytical chain itself.</p>
+
+    <p>The result was confirmed across repeated end-to-end runs at three levels &mdash; each individual bridge tool, the consolidated pipeline, and the live orchestrator &mdash; each producing consistent, schema-compliant output from the same simulated alert.</p>
+  </div>
+
+  <div class="tally">
+    <div><div class="n">6</div><div class="k">Services online</div></div>
+    <div><div class="n">5</div><div class="k">Stages per run</div></div>
+    <div><div class="n">1</div><div class="k">Pass, fixed order</div></div>
+    <div><div class="n">3</div><div class="k">Levels validated</div></div>
+  </div>
+
+  <div class="body">
+    <h3>Limits I will state plainly</h3>
+    <p>Validation here was hands-on testing against simulated SOC alerts, not a measured evaluation. It establishes that the system produces consistent, schema-compliant, sensible output on the cases tried. It does not establish accuracy rates against a labelled corpus, behaviour under adversarial or malformed alerts, latency under concurrency, or output quality across the full diversity of real incident types. An automated evaluation harness with confidence scoring is the first thing I would build before this system informed a real decision, and I would rather say so than let repeated successful runs imply more than they earned.</p>
+  </div>
+</section>
+
+<!-- ============ 07 SECURITY ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">07<br>Security</div>
+    <div>
+      <h2>Secure engineering as a design input</h2>
+      <p class="sub">A system that operates in the security domain and was always intended to be published.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Control</th><th>Implementation</th></tr></thead>
+    <tbody>
+      <tr><td>Trusted-source grounding</td><td>Web retrieval constrained by the Programmable Search Engine to an allow-list of authoritative domains, making low-quality or adversarial sources structurally difficult to introduce rather than merely discouraged</td></tr>
+      <tr><td>Least-privilege credentials</td><td>The Google API key is explicitly restricted to the Custom Search API alone; it can call nothing else in the project even if it leaks</td></tr>
+      <tr><td>Short-lived authentication</td><td>IBM Cloud access uses IAM bearer tokens exchanged per call from rotatable API keys, rather than long-lived credentials travelling with each request</td></tr>
+      <tr><td>Isolation by project</td><td>A dedicated Google Cloud project provisioned solely for this integration, keeping its blast radius separate from anything else</td></tr>
+      <tr><td>Service isolation</td><td>Each agent runs as an independently addressable AI-service deployment, limiting blast radius and enabling independent scaling</td></tr>
+      <tr><td>Safe-to-publish redaction</td><td>Every API key, bearer token and access token permanently redacted, along with all public and private inference endpoints, deployment and resource identifiers, and browser address bars. Underlying credentials are additionally rotated</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p>The redaction discipline is worth one further note. Inference endpoints and deployment identifiers are not secrets in the way a key is, but published together they describe reachable infrastructure precisely enough to be useful to someone probing it. Treating them as confidential and rotating the credentials anyway is the cheaper side of that trade &mdash; and showing the redaction explicitly throughout the documentation is itself the evidence that the practice was applied.</p>
+  </div>
+</section>
+
+<!-- ============ 08 BUILD ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">08<br>Build</div>
+    <div>
+      <h2>The running system</h2>
+      <p class="sub">Captured from the live build. All endpoints, identifiers, keys and tokens are permanently redacted.</p>
+    </div>
+  </div>
+
+  <div class="gal">
+    <figure class="wide"><img src="images/acms-01-architecture.jpg" alt="End-to-end architecture of the autonomous cybersecurity multi-agent system"><figcaption><b>Architecture</b>From security event in, through the supervised five-stage pipeline and trusted knowledge layer, to a final analyst report out.</figcaption></figure>
+    <figure><img src="images/acms-05-deployments.jpg" alt="The watsonx Orchestrate deployment space listing six online AI services"><figcaption><b>Deployment topology</b>All five specialist agents plus the tools runtime, deployed and online as independently addressable AI services.</figcaption></figure>
+    <figure><img src="images/acms-02-retrieval.jpg" alt="A semantic query against the vector knowledge base returning ranked passages with similarity scores"><figcaption><b>Retrieval validated</b>A semantic query returns the relevant playbooks, incident patterns and NIST controls with similarity scores &mdash; grounding confirmed, not assumed.</figcaption></figure>
+    <figure><img src="images/acms-03-trusted-sources.jpg" alt="Programmable Search Engine configuration showing the allow-list of authoritative security domains"><figcaption><b>The allow-list</b>Live web grounding restricted to authoritative security domains, enforced in configuration.</figcaption></figure>
+    <figure><img src="images/acms-04-pipeline.jpg" alt="Testing the single-pass pipeline tool against a simulated alert and receiving a complete combined result"><figcaption><b>Single-pass execution</b>The consolidated pipeline tool run against a simulated alert, returning one complete, schema-compliant multi-agent result.</figcaption></figure>
+    <figure class="wide"><img src="images/acms-06-report.jpg" alt="The final analyst report produced by the orchestrator"><figcaption><b>The deliverable</b>Executive summary, agent-by-agent analysis, quantified risk, prioritized recommendations and conclusion &mdash; from one raw alert.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============ 09 RESULTS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">09<br>Results</div>
+    <div>
+      <h2>What the system actually produces</h2>
+      <p class="sub">Not a chatbot. A decision-support system with a defined output.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>Given a single raw alert, the orchestrator returns a Final Analyst Report containing an executive summary, agent-by-agent insights, quantified risk and a prioritized set of concrete remediation actions &mdash; with the complete structured pipeline data available alongside the narrative, so the reasoning can be inspected rather than taken on trust.</p>
+    <ul>
+      <li>A deterministic five-stage pipeline chaining specialist agents with strict, well-typed hand-offs</li>
+      <li>Six independently deployed online AI services orchestrated through purpose-built tools</li>
+      <li>Trusted hybrid grounding combining vector RAG with allow-listed authoritative web search</li>
+      <li>Consistent, schema-compliant output validated at the agent, pipeline and orchestrator levels</li>
+      <li>A single supervising agent fronting the whole system and delivering a professional analyst report</li>
+    </ul>
+    <p>The wider point is architectural. The patterns here &mdash; agent specialization, structured hand-offs, tool use, retrieval grounding, orchestration &mdash; are the ones that increasingly define production AI, applied to a domain where being wrong is expensive and being unverifiable is disqualifying.</p>
+  </div>
+</section>
+
+<!-- ============ 10 STATUS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">10<br>Status</div>
+    <div>
+      <h2>Honest build state</h2>
+      <p class="sub">Shipped, prototype-level, or deferred &mdash; and where this goes next.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Capability</th><th>State</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Five specialist agents</td><td><span class="chip c-ship">Shipped</span></td><td>Built, instructed with strict output contracts, deployed as independent online AI services</td></tr>
+      <tr><td>Deterministic pipeline</td><td><span class="chip c-ship">Shipped</span></td><td>Fixed-sequence single-pass execution with defensive fallbacks at every join</td></tr>
+      <tr><td>Agent-to-agent integration</td><td><span class="chip c-ship">Shipped</span></td><td>Five bridge tools with IAM authentication, response parsing and normalization, each independently tested</td></tr>
+      <tr><td>Vector knowledge base</td><td><span class="chip c-ship">Shipped</span></td><td>Ten curated files, tuned chunking and overlap, retrieval validated by direct query</td></tr>
+      <tr><td>Trusted web grounding</td><td><span class="chip c-ship">Shipped</span></td><td>Programmable Search Engine allow-list, least-privilege API key scoped to Custom Search only</td></tr>
+      <tr><td>Supervising orchestrator</td><td><span class="chip c-ship">Shipped</span></td><td>Phased operating instruction, eight-tool belt, final report synthesis</td></tr>
+      <tr><td>Optional source validation</td><td><span class="chip c-proto">Prototype</span></td><td>Functional, but invoked at the orchestrator's discretion rather than on a defined rule</td></tr>
+      <tr><td>Output robustness</td><td><span class="chip c-proto">Prototype</span></td><td>Normalization and fallbacks hold across every run tried; not yet exercised against adversarial or malformed alerts</td></tr>
+      <tr><td>Automated evaluation harness</td><td><span class="chip c-def">Deferred</span></td><td>Highest-priority next investment &mdash; accuracy against a labelled corpus, with confidence scoring</td></tr>
+      <tr><td>SIEM / SOAR integration</td><td><span class="chip c-def">Deferred</span></td><td>Pipeline currently runs on demand rather than triggering automatically on incoming alerts</td></tr>
+      <tr><td>Human-in-the-loop surface</td><td><span class="chip c-def">Deferred</span></td><td>Required before any action-capable step; the approval gate is the feature, not the connector</td></tr>
+      <tr><td>Stage parallelization</td><td><span class="chip c-def">Deferred</span></td><td>Independent stages could run concurrently for lower latency; the chain is strictly sequential today</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>Where this goes next</h3>
+    <p>The natural trajectory is from an advisory analyst that recommends actions into a guarded, action-capable platform that helps carry them out &mdash; scoped connectors into identity providers, firewalls, endpoint protection and cloud security tooling, so an approved recommendation can actually be applied rather than only described.</p>
+    <p>Every one of those actions stays behind a mandatory human approval gate, with full audit logging and rollback. That is not a caveat appended to an ambition; it is the design constraint that makes the ambition responsible. An analyst who cannot refuse, inspect and reverse a change is not in the loop, whatever the diagram says. Capturing those approvals, edits and rejections as feedback is also what would let the system measurably improve its scoring and recommendations over time.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ CLOSING ============ -->
+<div class="closing">
+  <div class="wrap">
+    <div class="eyebrow" style="margin-bottom:14px">What this build demonstrates</div>
+    <h2>Specialization, made real by deployment</h2>
+    <hr>
+    <p>This project covers the full lifecycle of a non-trivial deployed multi-agent system: framing an ambiguous problem, decomposing it into specialists, chaining them through strict contracts, grounding them in trusted knowledge, deploying them as live authenticated services, and unifying them under an intelligent orchestrator &mdash; with secure-engineering practice applied throughout rather than reviewed on afterwards.</p>
+    <p>The decision I would defend hardest is the smallest-looking one: bounding the pipeline to a single deterministic pass. It gives up the autonomy that makes agent demos impressive, and buys the reliability that makes them usable.</p>
+    <ul>
+      <li>Multi-agent architecture, agent specialization and deterministic pipeline design</li>
+      <li>Agent instruction design with strict JSON output contracts and schema enforcement</li>
+      <li>Vector embeddings, RAG knowledge bases and trusted hybrid retrieval as an anti-hallucination control</li>
+      <li>Deploying and managing online AI services, inference endpoints and deployment spaces</li>
+      <li>Custom Python tooling for authenticated agent-to-agent calling and response normalization</li>
+      <li>IAM authentication, least-privilege API keys, service isolation and publication-safe redaction</li>
+      <li>Threat intelligence, NIST SP 800-53 and ISO 27001 control mapping, FAIR quantitative risk and remediation prioritization</li>
+    </ul>
+    <hr>
+    <p class="mono" style="color:#8FBEDD">IBM watsonx.ai &middot; Agent Lab &middot; watsonx Orchestrate &middot; Llama 3.3 70B &middot; LangGraph &middot; ReAct &middot; Google Programmable Search</p>
+    <p style="margin-top:22px"><a href="autonomous-cybersecurity-agents.html" style="color:#EDEFE9">Read the article &rarr;</a> &nbsp;&middot;&nbsp; <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener" style="color:#EDEFE9">Portfolio &amp; resume</a> &nbsp;&middot;&nbsp; <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="color:#EDEFE9">LinkedIn</a></p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -60,6 +60,56 @@ const ARTICLES = [
 
 
 /* ============================================================
+   THE PROJECT LIST — engineering dossiers.
+   ============================================================
+
+   Works exactly like the article list above. The home page and
+   articles.html each show the five newest entries from this list.
+
+   TO PUBLISH A NEW DOSSIER
+   ------------------------
+   1. Create the dossier's .html file (copy an existing one).
+   2. Copy the block below, paste the copy at the TOP of the list,
+      and edit its four fields.
+   3. Upload both files. Nothing else to change.
+
+     {
+       title:   "Project name",
+       href:    "my-project.html",
+       kind:    "Serverless · Engineering dossier",
+       summary: "One or two sentences. Keep it under about 40 words."
+     },
+
+   NEWEST FIRST, same as the articles.
+   ============================================================ */
+
+const PROJECTS = [
+
+  {
+    title:   "Autonomous Cybersecurity Multi-Agent System",
+    href:    "cybersecurity-multi-agent-system.html",
+    kind:    "Agentic AI · Engineering dossier",
+    summary: "Six deployed AI services on IBM watsonx. Five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass."
+  },
+
+  {
+    title:   "Recruiter Verification Gateway",
+    href:    "recruiter-verification-gateway.html",
+    kind:    "Serverless · Engineering dossier",
+    summary: "A serverless identity gate on AWS. Six services, one public route, a five-test tri-state policy engine proven across all 162 of its states, and signed fifteen-minute approval credentials."
+  },
+
+  {
+    title:   "Fridge2Meal",
+    href:    "fridge2meal.html",
+    kind:    "Full-stack · Engineering dossier",
+    summary: "An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command."
+  }
+
+];
+
+
+/* ============================================================
    RENDERING — you do not need to edit anything below this line.
    ============================================================ */
 
@@ -96,6 +146,18 @@ const ARTICLES = [
     if (more && ARTICLES.length > PER_PAGE_HOME) {
       more.hidden = false;
     }
+  }
+
+  /* ---------- project detail: newest five, on every page that asks ---------- */
+  var projects = document.getElementById("latest-projects");
+  if (projects && typeof PROJECTS !== "undefined") {
+    projects.innerHTML = PROJECTS.slice(0, PER_PAGE_HOME).map(function (p) {
+      return '<a class="entry" href="' + esc(p.href) + '">' +
+               '<div class="date">' + esc(p.kind) + '</div>' +
+               '<h2>' + esc(p.title) + '</h2>' +
+               '<p>' + esc(p.summary) + '</p>' +
+             '</a>';
+    }).join("");
   }
 
   /* ---------- archive page: 20 per page, with paging ---------- */

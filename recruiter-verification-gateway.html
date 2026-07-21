@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recruiter Verification Gateway — Engineering Dossier</title>
+<meta name="description" content="A serverless identity gate on AWS: a tri-state policy engine, admission rules as configuration, exhaustively proven verdicts, and signed expiring credentials.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,400..900;1,75..125,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10231C;
+  --ink-soft:#41544C;
+  --paper:#EDEFE9;
+  --card:#FBFCF8;
+  --rule:#C3C9BE;
+  --rule-soft:#DDE1D8;
+  --fresh:#9FBB16;
+  --volt:#5B4BD6;
+  --amber:#BE7C22;
+  --clay:#9E4430;
+  --steel:#5B7168;
+  --display:"Archivo",-apple-system,sans-serif;
+  --body:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --wrap:940px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:19px; line-height:1.62;
+  font-variation-settings:"opsz" 18;
+}
+.wrap{max-width:var(--wrap); margin:0 auto; padding:0 28px}
+
+/* ---------- utility type ---------- */
+.mono{font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase}
+.m{font-family:var(--mono); font-size:.84em; letter-spacing:0}
+.eyebrow{font-family:var(--mono); font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--steel)}
+h1,h2,h3,h4{font-family:var(--display); font-weight:800; line-height:1.05; margin:0}
+p{margin:0 0 1.05em}
+a{color:inherit}
+
+/* ---------- cover ---------- */
+.cover{padding:64px 0 40px; border-bottom:6px solid var(--ink)}
+.cover .stamp{
+  display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  border-top:2px solid var(--ink); border-bottom:1px solid var(--rule);
+  padding:10px 0; margin-bottom:46px;
+}
+.cover h1{
+  font-size:clamp(2.5rem,8.4vw,5.9rem);
+  font-variation-settings:"wdth" 108;
+  letter-spacing:-.035em; text-transform:uppercase;
+}
+.cover h1 .two{color:var(--volt)}
+.deck{
+  font-size:clamp(1.15rem,2.4vw,1.5rem); line-height:1.42; max-width:32ch;
+  margin:26px 0 0; color:var(--ink); font-variation-settings:"opsz" 36;
+}
+.byline{margin-top:44px; border-top:1px solid var(--rule); padding-top:16px;
+  display:grid; grid-template-columns:1fr 1fr; gap:22px}
+.byline .name{font-family:var(--display); font-weight:800; font-size:1.32rem; letter-spacing:-.01em}
+.byline .role{color:var(--ink-soft); font-size:.95rem; line-height:1.45; margin-top:4px}
+
+/* ---------- facts panel ---------- */
+.facts{
+  background:var(--card); border:2.5px solid var(--ink); margin:46px 0 0;
+  padding:0 20px 18px; font-family:var(--display);
+}
+.facts .fhead{font-size:2.1rem; font-weight:900; letter-spacing:-.03em;
+  text-transform:uppercase; padding:14px 0 6px; font-variation-settings:"wdth" 92}
+.facts .fsub{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--steel); padding-bottom:10px}
+.hr-fat{border:0; border-top:11px solid var(--ink); margin:0}
+.hr-mid{border:0; border-top:4px solid var(--ink); margin:0}
+.hr-thin{border:0; border-top:1px solid var(--rule); margin:0}
+.frow{display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:7px 0}
+.frow .lbl{font-weight:700; font-size:.94rem; letter-spacing:-.005em}
+.frow .lbl small{font-weight:400; font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.12em; color:var(--steel); display:block; margin-top:2px; text-transform:uppercase}
+.frow .val{font-family:var(--mono); font-size:.9rem; font-weight:600; text-align:right; white-space:nowrap}
+.frow.big .lbl{font-size:1.5rem; font-weight:900; letter-spacing:-.02em}
+.frow.big .val{font-size:1.5rem; font-weight:600}
+.frow.indent{padding-left:16px}
+.frow.indent .lbl{font-weight:400; font-size:.88rem}
+.fnote{font-family:var(--mono); font-size:.6rem; line-height:1.7; letter-spacing:.03em;
+  color:var(--steel); padding-top:12px; text-transform:none}
+
+/* ---------- sections ---------- */
+section{padding:64px 0; border-top:1px solid var(--rule)}
+section:first-of-type{border-top:0}
+.shead{display:grid; grid-template-columns:78px 1fr; gap:22px; align-items:start; margin-bottom:26px}
+.shead .lot{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; color:var(--steel);
+  border-top:3px solid var(--ink); padding-top:8px; line-height:1.5}
+.shead h2{font-size:clamp(1.75rem,4.2vw,2.7rem); letter-spacing:-.03em;
+  font-variation-settings:"wdth" 100; text-transform:uppercase; padding-top:4px}
+.shead .sub{color:var(--ink-soft); font-size:1.02rem; margin-top:10px; max-width:52ch}
+.body{max-width:66ch}
+.body h3{font-size:1.18rem; letter-spacing:-.01em; margin:34px 0 10px;
+  text-transform:uppercase; font-variation-settings:"wdth" 92; font-weight:800}
+.body h3:first-child{margin-top:0}
+.body ul{margin:0 0 1.1em; padding-left:0; list-style:none}
+.body ul li{position:relative; padding-left:26px; margin-bottom:.5em}
+.body ul li::before{content:""; position:absolute; left:0; top:.66em;
+  width:12px; height:2px; background:var(--volt)}
+strong{font-weight:650}
+.lede{font-size:1.16rem; line-height:1.55; font-variation-settings:"opsz" 30}
+
+/* pull quote / conviction */
+.conviction{
+  border-left:6px solid var(--volt); padding:6px 0 6px 24px; margin:34px 0;
+  font-family:var(--display); font-weight:700; font-size:1.28rem; line-height:1.3;
+  letter-spacing:-.015em; max-width:36ch;
+}
+
+/* ---------- data table ---------- */
+table{width:100%; border-collapse:collapse; margin:26px 0; font-size:.92rem}
+th{font-family:var(--mono); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase;
+  text-align:left; color:var(--steel); border-bottom:2px solid var(--ink); padding:0 12px 8px 0; vertical-align:bottom}
+td{border-bottom:1px solid var(--rule-soft); padding:11px 12px 11px 0; vertical-align:top; line-height:1.45}
+td:first-child{font-family:var(--display); font-weight:700; letter-spacing:-.01em; width:31%}
+td.m{font-family:var(--mono); font-size:.78rem; letter-spacing:.02em}
+table.codes td:first-child{font-family:var(--mono); font-weight:500; font-size:.78rem; width:22%}
+table.codes td:nth-child(3){font-family:var(--mono); font-weight:500; font-size:.78rem; width:22%}
+
+/* ---------- state + status chips ---------- */
+.chip{display:inline-block; font-family:var(--mono); font-size:.58rem; letter-spacing:.13em;
+  text-transform:uppercase; padding:3px 8px 2px; border:1.5px solid; white-space:nowrap; vertical-align:2px}
+.c-ship{color:#3F5A0E; border-color:var(--fresh); background:rgba(159,187,22,.16)}
+.c-proto{color:var(--amber); border-color:var(--amber); background:rgba(190,124,34,.10)}
+.c-def{color:var(--clay); border-color:var(--clay); background:rgba(158,68,48,.09)}
+.c-pass{color:#3F5A0E; border-color:var(--fresh); background:rgba(159,187,22,.16)}
+.c-fail{color:var(--clay); border-color:var(--clay); background:rgba(158,68,48,.09)}
+.c-unav{color:var(--volt); border-color:var(--volt); background:rgba(91,75,214,.10)}
+.c-req{color:var(--volt); border-color:var(--volt); background:rgba(91,75,214,.10)}
+.c-opt{color:var(--steel); border-color:var(--rule); background:rgba(91,113,104,.08)}
+
+/* ---------- pipeline ---------- */
+.pipe{margin:30px 0; border-top:3px solid var(--ink)}
+.stage{display:grid; grid-template-columns:52px 1fr; gap:20px;
+  border-bottom:1px solid var(--rule); padding:18px 0}
+.stage .n{font-family:var(--mono); font-size:.72rem; color:var(--steel); padding-top:5px}
+.stage h4{font-size:1.02rem; text-transform:uppercase; letter-spacing:-.005em;
+  font-variation-settings:"wdth" 90; margin-bottom:5px}
+.stage p{font-size:.96rem; margin:0; color:var(--ink-soft); line-height:1.5; max-width:60ch}
+
+/* ---------- signal grid ---------- */
+.signals{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin:28px 0}
+.signal{background:var(--card); padding:16px 16px 18px}
+.signal .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel)}
+.signal .v{font-family:var(--display); font-weight:800; font-size:1.02rem; letter-spacing:-.015em;
+  margin-top:7px; line-height:1.2; text-transform:uppercase; font-variation-settings:"wdth" 90}
+.signal .d{font-size:.86rem; color:var(--ink-soft); margin-top:7px; line-height:1.45}
+.signal .g{margin-top:10px}
+
+/* ---------- gallery ---------- */
+.gal{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:26px; margin-top:12px}
+figure{margin:0}
+figure img{width:100%; display:block; border:1px solid var(--rule); background:#fff}
+figcaption{margin-top:9px; font-size:.86rem; color:var(--ink-soft); line-height:1.45}
+figcaption b{font-family:var(--display); font-weight:700; text-transform:uppercase;
+  font-size:.72rem; letter-spacing:.06em; display:block; color:var(--ink); margin-bottom:2px}
+.gal .wide{grid-column:1/-1}
+
+/* ---------- verification ---------- */
+.tally{display:flex; gap:0; border:2px solid var(--ink); margin:26px 0; flex-wrap:wrap}
+.tally div{flex:1 1 120px; padding:18px 16px; border-right:1px solid var(--rule)}
+.tally div:last-child{border-right:0}
+.tally .n{font-family:var(--display); font-weight:900; font-size:2.3rem; letter-spacing:-.04em; line-height:1}
+.tally .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel); margin-top:8px}
+
+/* ---------- closing ---------- */
+.closing{background:var(--ink); color:var(--paper); margin-top:64px}
+.closing .wrap{padding-top:56px; padding-bottom:56px}
+.closing h2{color:var(--paper); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:-.03em; text-transform:uppercase}
+.closing p{color:#C6D2CB; max-width:60ch}
+.closing .eyebrow{color:#A99BF5}
+.closing hr{border:0; border-top:1px solid #2C4237; margin:26px 0}
+.closing ul{margin:0; padding-left:0; list-style:none; max-width:62ch}
+.closing ul li{position:relative; padding-left:26px; margin-bottom:.55em; color:#C6D2CB}
+.closing ul li::before{content:""; position:absolute; left:0; top:.66em; width:12px; height:2px; background:#A99BF5}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .shead{grid-template-columns:1fr; gap:10px}
+  .shead .lot{border-top:2px solid var(--ink); padding-top:6px}
+  .byline{grid-template-columns:1fr}
+  .cover{padding-top:36px}
+  table.codes td:first-child,table.codes td:nth-child(3){width:auto}
+}
+@media print{
+  body{background:#fff}
+  section{page-break-inside:auto; padding:34px 0}
+  figure,.facts,.tally,.signals{page-break-inside:avoid}
+  .closing{background:#fff; color:var(--ink)}
+  .closing h2,.closing p,.closing ul li{color:var(--ink)}
+}
+@media (prefers-reduced-motion:no-preference){
+  .cover h1,.deck,.byline{animation:rise .7s cubic-bezier(.2,.7,.3,1) both}
+  .deck{animation-delay:.09s} .byline{animation-delay:.16s}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+}
+</style>
+</head>
+<body>
+<div style="border-bottom:2px solid #10231C;background:#EDEFE9">
+<div style="max-width:940px;margin:0 auto;padding:18px 28px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
+<a href="index.html" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:1.05rem;color:#10231C;text-decoration:none;letter-spacing:-.01em">Esmeralda C. Cabrera Ventura</a>
+<span style="display:flex;gap:20px;flex-wrap:wrap">
+<a href="articles.html" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">&larr; Articles</a>
+<a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">Portfolio</a>
+<a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#5B7168;text-decoration:none">LinkedIn</a>
+</span>
+</div></div>
+
+
+<!-- ============ COVER ============ -->
+<header class="wrap cover">
+  <div class="stamp">
+    <span class="mono">Engineering Dossier</span>
+    <span class="mono">Serverless &middot; AWS</span>
+    <span class="mono">Live in production</span>
+  </div>
+
+  <h1>Recruiter Verification <span class="two">Gateway</span></h1>
+
+  <p class="deck">A serverless identity gate that turns an anonymous click on a public calendar into an adjudicated, logged, revocable decision.</p>
+
+  <div class="byline">
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Architecture &amp; Implementation</div>
+      <div class="name">Esmeralda C. Cabrera Ventura</div>
+      <div class="role">Cloud Architect &middot; Serverless Backend Engineering &middot; Identity &amp; Access Design &middot; Security Engineering</div>
+    </div>
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Scope of this document</div>
+      <div class="role">A technical account of the system I designed and built: the tri-state policy engine, the admission rules that live in configuration, the exhaustive proof of its verdicts, and the signed credential that carries an approval across a redirect.</div>
+    </div>
+  </div>
+
+  <!-- SIGNATURE PANEL -->
+  <div class="facts">
+    <div class="fhead">Engineering Facts</div>
+    <div class="fsub">Per deployed stack &middot; single AWS region</div>
+    <hr class="hr-fat">
+    <div class="frow big"><span class="lbl">Public routes</span><span class="val">1</span></div>
+    <hr class="hr-mid">
+    <div class="frow"><span class="lbl">AWS services integrated<small>Lambda, API Gateway, S3, CloudFront, IAM, CloudWatch</small></span><span class="val">6</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Policy tests<small>independent, individually addressable</small></span><span class="val">5</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">States per test<small>PASS / FAIL / UNAVAILABLE</small></span><span class="val">3</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Rejection reason codes</span><span class="val">12</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Approval credential lifetime<small>HMAC-SHA256, single-use jti</small></span><span class="val">15 min</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Enumerated policy states proven</span><span class="val">162</span></div>
+    <div class="frow indent"><span class="lbl">Correct</span><span class="val">162 &middot; 100%</span></div>
+    <div class="frow indent"><span class="lbl">Incorrect</span><span class="val">0</span></div>
+    <hr class="hr-mid">
+    <div class="frow big"><span class="lbl">Third-party runtime dependencies</span><span class="val">0</span></div>
+    <hr class="hr-fat">
+    <div class="fnote">
+      The component that makes the security decision runs on the Node.js standard library alone
+      &mdash; native fetch and ES modules are sufficient to orchestrate the entire OAuth handshake
+      by hand. Nothing to keep patched, and no supply-chain surface in the adjudicating code path.
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 01 THESIS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">01<br>Thesis</div>
+    <div>
+      <h2>Proof of identity, not proof of humanity</h2>
+      <p class="sub">The reframing that made the rest of the system designable.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p class="lede">A public portfolio has to satisfy two goals that pull directly against each other. It has to be maximally reachable, so a recruiter can book time in seconds. And it has to be defended, because a naked scheduling link on a public website is an open invitation to automated form-fillers, cold-outreach spam and calendar-stuffing bots.</p>
+
+    <p>The usual compromises are all bad. Hiding the link behind a contact form adds friction and loses exactly the people you wanted. Publishing the raw calendar surrenders control entirely. A CAPTCHA proves the visitor is human but says nothing about whether they are relevant &mdash; a bot and a genuine hiring manager are indistinguishable to a checkbox.</p>
+
+    <p>So I framed the requirement differently. What the calendar needs is not proof of humanity. It is <strong>proof of professional identity</strong>: a verifiable claim, issued by a trusted third party, that the person asking for time is who they say they are. Once the requirement is stated that way, the architecture follows almost mechanically &mdash; federate the identity, adjudicate the claims server-side, and express the outcome as a credential rather than as a session.</p>
+
+    <div class="conviction">The gate does not ask whether you are human. It asks whether a trusted issuer will vouch for who you say you are.</div>
+
+    <p>That reframing is also what surfaced the hardest problem in the build, which is not authentication at all. It is what a policy engine should do when the identity provider declines to answer &mdash; a question a conventional pass/fail check cannot express, and gets wrong in the direction that rejects legitimate visitors.</p>
+  </div>
+</section>
+
+<!-- ============ 02 SYSTEM ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">02<br>System</div>
+    <div>
+      <h2>Shape of the architecture</h2>
+      <p class="sub">No application server. No container, no virtual machine, no database. One public route and one stateless function.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>A static front end initiates a federated identity flow; a managed HTTP endpoint receives the callback; a single stateless function adjudicates it; and the outcome is expressed entirely as an HTTP redirect carrying either a signed approval token or a machine-readable rejection reason. There is no server-side session state anywhere in the system, which is a constraint I chose rather than inherited &mdash; it is what forces the approval to be a credential rather than a flag.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Component</th><th>Technology</th><th>Responsibility I owned</th></tr></thead>
+    <tbody>
+      <tr><td>Static front end</td><td class="m">S3 &middot; CloudFront &middot; Origin Access Control</td><td>Portfolio hosting with the storage bucket never publicly addressable; the entry control mints a cryptographically random CSRF nonce, persists it to <span class="m">sessionStorage</span> and hands the browser to the identity provider</td></tr>
+      <tr><td>Identity provider</td><td class="m">LinkedIn OpenID Connect</td><td>Client registration, exact redirect-URI matching, scope selection across <span class="m">openid</span>, <span class="m">profile</span> and <span class="m">email</span>; returns a single-use authorization code</td></tr>
+      <tr><td>Front door</td><td class="m">API Gateway HTTP API</td><td>One route, <span class="m">GET /callback</span>, Lambda proxy integration, auto-deploying stage. That single path is the entire public attack surface</td></tr>
+      <tr><td>Decision engine</td><td class="m">Lambda &middot; Node.js 24.x &middot; zero dependencies</td><td>Token exchange, claim gathering, the five-test policy, credential minting or withholding, and the structured audit record</td></tr>
+      <tr><td>Approval credential</td><td class="m">HMAC-SHA256 &middot; base64url</td><td>Compact signed payload with a 15-minute TTL, a <span class="m">jti</span> replay identifier and timing-safe verification</td></tr>
+      <tr><td>Outcome pages</td><td class="m">Static HTML</td><td>An approval surface that greets a verified visitor and forwards to the live calendar; a rejection surface that reads a reason code and renders a specific explanation</td></tr>
+      <tr><td>Audit</td><td class="m">CloudWatch Logs</td><td>The system of record &mdash; the policy in force, each test's state, whether its data source answered, and the final verdict</td></tr>
+      <tr><td>Authorization</td><td class="m">IAM</td><td>Least-privilege execution role carrying log-write permissions and no standing data-plane access</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>Two choices worth defending</h3>
+    <p><strong>Zero third-party dependencies</strong> was deliberate rather than minimalism for its own sake. A current Node runtime provides native fetch and ES modules, which is enough to write the entire OAuth orchestration by hand. The result is that the component making the security decision has nothing to keep patched and no supply-chain surface at all.</p>
+    <p><strong>HTTP API over REST API</strong> followed the same reasoning. Request validators, usage plans and API keys are genuinely useful features &mdash; for a single OAuth callback route they are unused surface, at higher latency and higher cost.</p>
+  </div>
+
+  <h3 style="font-family:var(--display); text-transform:uppercase; letter-spacing:-.01em; font-size:1.1rem; margin:36px 0 4px">The request lifecycle</h3>
+  <div class="pipe">
+    <div class="stage"><div class="n">01</div><div>
+      <h4>Initiation</h4>
+      <p>The browser generates sixteen bytes of cryptographic randomness as a CSRF nonce, persists it client-side, and redirects to the authorization endpoint with the client id, the exact registered redirect URI, the requested scopes and the nonce as <span class="m">state</span>.</p>
+    </div></div>
+    <div class="stage"><div class="n">02</div><div>
+      <h4>Authentication</h4>
+      <p>The provider authenticates the visitor, obtains consent for the requested scopes, and redirects the browser back to the registered callback with a single-use authorization code.</p>
+    </div></div>
+    <div class="stage"><div class="n">03</div><div>
+      <h4>Reception</h4>
+      <p>API Gateway matches <span class="m">GET /callback</span> and invokes the function through proxy integration, passing the query string intact. TLS terminates here; the function is never exposed to the raw internet.</p>
+    </div></div>
+    <div class="stage"><div class="n">04</div><div>
+      <h4>Exchange</h4>
+      <p>The function posts the code, client credentials and redirect URI to the token endpoint &mdash; server-side only, so the client secret never leaves the execution environment. Failures are classified rather than collapsed: a reused or expired code produces a retry message, not a verdict about the visitor.</p>
+    </div></div>
+    <div class="stage"><div class="n">05</div><div>
+      <h4>Claim gathering</h4>
+      <p>The function requests the OIDC userinfo document and, in parallel, attempts the privileged verification-report and headline endpoints. Denial on either is tolerated without failing the request &mdash; enrichment calls are non-fatal by design.</p>
+    </div></div>
+    <div class="stage"><div class="n">06</div><div>
+      <h4>Adjudication</h4>
+      <p>Five independent tests each return PASS, FAIL or UNAVAILABLE. The policy engine applies a mandatory set plus a minimum passing count and resolves a single verdict.</p>
+    </div></div>
+    <div class="stage"><div class="n">07</div><div>
+      <h4>Hand-off</h4>
+      <p>Approved, a signed credential is minted and the browser redirected onward with it. Rejected, the browser is redirected with a specific reason code. Either way the response is an HTTP redirect and nothing else.</p>
+    </div></div>
+    <div class="stage"><div class="n">08</div><div>
+      <h4>Audit</h4>
+      <p>A structured JSON record of the entire decision is written to CloudWatch before the invocation ends.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============ 03 ENGINE ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">03<br>Engine</div>
+    <div>
+      <h2>Designing for a provider that declines to answer</h2>
+      <p class="sub">The architectural centerpiece: a third state, and the class of bug it removes.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>The most interesting engineering problem in this system is one that is not obvious until you integrate against a real identity provider.</p>
+    <p>Federated providers tier their data. Standard-tier OIDC access grants exactly three scopes and no more. Richer signals &mdash; a platform verification badge, a profile headline &mdash; live behind privileged endpoints that return HTTP 403 to applications without elevated access. <strong>That 403 does not mean the visitor lacks a badge. It means the provider declined to tell you.</strong></p>
+    <p>A conventional pass/fail check cannot express that difference. It has two outcomes and needs three, so it collapses "we don't know" into "no" &mdash; and a gate built on that collapse rejects legitimate visitors for its own lack of permission. Absence of evidence gets scored as evidence of absence. This is not a theoretical failure mode: it is exactly what the first revision did, and it rejected every visitor it saw.</p>
+
+    <div class="conviction">Any policy engine reading a third-party API needs a state for "the source declined to answer," or it will punish users for its own access tier.</div>
+  </div>
+
+  <div class="signals">
+    <div class="signal"><div class="k">State 01</div><div class="v">Pass</div><div class="d">The provider returned data and the visitor satisfies the rule. Counts toward the passing total.</div><div class="g"><span class="chip c-pass">Counts for</span></div></div>
+    <div class="signal"><div class="k">State 02</div><div class="v">Fail</div><div class="d">The provider returned data and the visitor violates the rule. A genuine failure, and able to veto if the test is mandatory.</div><div class="g"><span class="chip c-fail">Counts against</span></div></div>
+    <div class="signal"><div class="k">State 03</div><div class="v">Unavailable</div><div class="d">The provider returned nothing. Not evidence in either direction, and never counted against the visitor.</div><div class="g"><span class="chip c-unav">Counts neither way</span></div></div>
+  </div>
+
+  <div class="body">
+    <p>Each test also reports a <span class="m">dataAvailable</span> flag alongside its verdict. That flag is what makes the policy tunable on evidence rather than guesswork: production logs show exactly which sources are answering, so a discretionary rule can be promoted to mandatory when &mdash; and only when &mdash; its data is reliably present. The operations notes carry that as an explicit rule for future maintainers: <strong>never make a test mandatory while its <span class="m">dataAvailable</span> flag reads false.</strong></p>
+  </div>
+
+  <h3 style="font-family:var(--display); text-transform:uppercase; letter-spacing:-.01em; font-size:1.1rem; margin:36px 0 4px">The five tests</h3>
+  <table>
+    <thead><tr><th>Test</th><th>What it asserts</th><th>Standing</th></tr></thead>
+    <tbody>
+      <tr><td>Account identity</td><td>A valid account subject claim is present in the userinfo document &mdash; the visitor genuinely authenticated against the provider</td><td><span class="chip c-req">Mandatory</span></td></tr>
+      <tr><td>Profile completeness</td><td>A display name and a profile photo are both present, which is the cheapest available signal that a profile is inhabited rather than minted</td><td><span class="chip c-req">Mandatory</span></td></tr>
+      <tr><td>Verification badge</td><td>A platform identity or workplace verification badge is attached to the account</td><td><span class="chip c-opt">Scored</span></td></tr>
+      <tr><td>Headline keywords</td><td>The profile headline matches a curated set of eighteen recruiting and hiring terms</td><td><span class="chip c-opt">Scored</span></td></tr>
+      <tr><td>Email domain</td><td>The verified email sits on a corporate domain rather than a consumer, international-consumer or disposable provider</td><td><span class="chip c-opt">Scored</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p>The badge and headline tests are the two that live behind privileged endpoints, which is to say they are the two that return UNAVAILABLE on the production path today. They are implemented, wired and logged; they simply cannot contribute evidence until elevated access makes their data readable. The three-state design is what allows them to be shipped in that condition rather than commented out.</p>
+  </div>
+</section>
+
+<!-- ============ 04 POLICY ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">04<br>Policy</div>
+    <div>
+      <h2>Admission rules as configuration</h2>
+      <p class="sub">Strictness is a value, not control flow. Changing the gate does not mean rewriting logic that has already been proven correct.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>The five tests do not govern admission. Two declarations sitting above them do: a <strong>veto list</strong> of tests that must actively pass, and a <strong>floor</strong> on the total number of passes. Everything else is evaluation.</p>
+    <p>That structure means the gate's strictness is a configuration value. Making corporate email mandatory is a one-line edit. Requiring one criterion beyond the mandatory pair is a one-line edit. Loosening to any two of five is a one-line edit. No logic is rewritten, so no logic can be broken in the rewriting &mdash; and the exhaustive proof in section 06 does not need to be re-derived every time the policy moves.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Desired change</th><th>Edit</th><th>Effect on decision logic</th></tr></thead>
+    <tbody>
+      <tr><td>Require a corporate email</td><td class="m">add domain to the veto list</td><td>None &mdash; evaluation is unchanged</td></tr>
+      <tr><td>Require one signal beyond identity</td><td class="m">raise the passing floor by one</td><td>None</td></tr>
+      <tr><td>Loosen to any two of five</td><td class="m">empty the veto list, floor = 2</td><td>None</td></tr>
+      <tr><td>Promote badge once readable</td><td class="m">add badge to the veto list</td><td>None &mdash; gated on <span class="m">dataAvailable</span> evidence</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>The domain test, and enforced-but-not-blocking</h3>
+    <p>The domain test is worth a note on its own. It screens against a curated deny-list of more than fifty consumer, international and disposable email providers, and rejects malformed domains outright. Today it is scored rather than mandatory &mdash; a recruiter on a consumer address is still admitted, but the failure is recorded and carried inside their issued credential.</p>
+    <p>Enforced-and-logged rather than enforced-and-blocking. The point is that the policy can be tightened later against real traffic instead of against assumptions, and the evidence needed to justify tightening it is already accumulating in the logs.</p>
+  </div>
+</section>
+
+<!-- ============ 05 CREDENTIAL ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">05<br>Credential</div>
+    <div>
+      <h2>An approval that survives a redirect</h2>
+      <p class="sub">There is no session to carry the decision, so the decision has to carry itself.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>An approved visitor is forwarded into a static page, so the hand-off cannot rely on server session state. The function mints a compact signed credential instead: HMAC-SHA256 over a base64url payload carrying the account subject, email, display name, which tests passed, which were skipped as unavailable, issue and expiry timestamps, and a UUID replay identifier.</p>
+    <ul>
+      <li><strong>Fifteen-minute expiry</strong> &mdash; long enough to book a meeting, short enough that a leaked link is worthless almost immediately</li>
+      <li><strong>Timing-safe comparison</strong> &mdash; signatures compared with a constant-time primitive after an explicit length check, closing a timing side-channel</li>
+      <li><strong>A replay identifier</strong> &mdash; every issued credential is individually addressable, which is what makes single-use enforcement possible without shared state</li>
+      <li><strong>Carried evidence</strong> &mdash; the passed and skipped test lists travel inside the credential, so the downstream surface knows on what basis it was admitted</li>
+    </ul>
+    <p>The structure is deliberately JWT-shaped without inheriting JWT's algorithm-confusion pitfalls, because a format this narrow does not need the generality that causes those bugs. One algorithm, one issuer, one audience, one purpose &mdash; there is no <span class="m">alg</span> field to attack because there is no algorithm choice to make.</p>
+  </div>
+
+  <h3 style="font-family:var(--display); text-transform:uppercase; letter-spacing:-.01em; font-size:1.1rem; margin:36px 0 4px">Security controls, designed in</h3>
+  <div class="body">
+    <p>Because this system exists to make a security decision, and was always intended to be published, the controls were designed in rather than reviewed on afterwards.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Control</th><th>Implementation</th></tr></thead>
+    <tbody>
+      <tr><td>Federated identity</td><td>No passwords collected, stored or transmitted anywhere in the system; authentication is delegated entirely to the provider</td></tr>
+      <tr><td>CSRF protection</td><td>A cryptographically random nonce per attempt, persisted client-side and echoed through the round trip as <span class="m">state</span></td></tr>
+      <tr><td>Server-side adjudication</td><td>The browser is never trusted with any part of the decision; every claim is fetched and evaluated inside the function</td></tr>
+      <tr><td>Secret containment</td><td>The client secret is used only in the server-side token exchange and never reaches the browser under any code path</td></tr>
+      <tr><td>Origin Access Control</td><td>Conditioned on the specific distribution ARN, so the bucket cannot be read on behalf of some other distribution in another account</td></tr>
+      <tr><td>Least privilege</td><td>Execution role carries log-write permissions and no standing data-plane access</td></tr>
+      <tr><td>Fail-closed defaults</td><td>Any unhandled exception redirects to the failure page; no code path grants access on error</td></tr>
+      <tr><td>Attack surface</td><td>One public route, one HTTP method, zero third-party packages in the adjudicating function</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 06 VERIFICATION ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">06<br>Proof</div>
+    <div>
+      <h2>Proving the policy, not trusting it</h2>
+      <p class="sub">Five tests across three states is a finite space. I did not sample it. I enumerated it.</p>
+    </div>
+  </div>
+
+  <div class="tally">
+    <div><div class="n">162</div><div class="k">States enumerated</div></div>
+    <div><div class="n">162</div><div class="k">Correct</div></div>
+    <div><div class="n">100%</div><div class="k">Agreement with spec</div></div>
+    <div><div class="n">1</div><div class="k">Defect caught</div></div>
+  </div>
+
+  <div class="body">
+    <p>Every reachable combination of the five tests across PASS, FAIL and UNAVAILABLE was generated and each evaluated against the specification &mdash; access is granted if and only if the identity and profile tests both pass &mdash; asserted independently of the implementation. All 162 resolved correctly.</p>
+    <p>The exercise earned its keep immediately: it caught a genuine defect that code review had not. An earlier revision allowed a single FAIL to veto approval even when the mandatory criteria had passed, which contradicted the intended rule. That bug is invisible to spot-checking, because the combinations that expose it are precisely the ones a developer testing their own work does not think to try.</p>
+
+    <div class="conviction">When a system makes an access decision, "it worked when I tried it" is not evidence.</div>
+  </div>
+
+  <table>
+    <thead><tr><th>Identity</th><th>Profile</th><th>Badge</th><th>Headline</th><th>Domain</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td><span class="chip c-pass">Granted</span></td></tr>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">PASS</td><td class="m">PASS</td><td class="m">UNAVAIL</td><td class="m">UNAVAIL</td><td class="m">PASS</td><td><span class="chip c-pass">Granted</span> &mdash; the production path today</td></tr>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">PASS</td><td class="m">PASS</td><td class="m">UNAVAIL</td><td class="m">UNAVAIL</td><td class="m">FAIL</td><td><span class="chip c-pass">Granted</span> &mdash; domain is scored, not binding</td></tr>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">PASS</td><td class="m">FAIL</td><td class="m">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td><span class="chip c-fail">Declined</span> &mdash; mandatory test failed</td></tr>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">FAIL</td><td class="m">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td class="m">PASS</td><td><span class="chip c-fail">Declined</span> &mdash; mandatory test failed</td></tr>
+      <tr><td class="m" style="font-family:var(--mono);font-weight:500;width:auto">PASS</td><td class="m">UNAVAIL</td><td class="m">UNAVAIL</td><td class="m">UNAVAIL</td><td class="m">PASS</td><td><span class="chip c-fail">Declined</span> &mdash; mandatory data absent</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p style="font-size:.92rem; color:var(--ink-soft)">A representative extract from the 162-case matrix. Note the third row: a visitor on a consumer email address is admitted, and the failure is still recorded inside their credential. Note the last: a mandatory test that returns UNAVAILABLE declines, because "we could not establish identity" is not the same as "we do not know whether they have a badge."</p>
+    <p>Where the state space is small enough to enumerate, exhaustive proof is available for the cost of a loop, and spot-checking becomes a choice not to bother. This one is small enough. Most access-control policies are.</p>
+  </div>
+</section>
+
+<!-- ============ 07 REJECTION ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">07<br>Rejection</div>
+    <div>
+      <h2>Refusal as a designed outcome</h2>
+      <p class="sub">Twelve reason codes, separating policy verdicts from mechanical ones.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>Most gates treat a refusal as an error state and emit something generic. That is a design failure twice over: it tells a legitimate visitor nothing actionable, and it tells the operator nothing diagnostic.</p>
+    <p>Here rejection is a first-class path with its own destination page and twelve granular reason codes. Crucially, those codes separate policy outcomes from mechanical ones &mdash; a reused single-use authorization code produces a retry message rather than a verdict about the visitor, because the two situations are not the same and should not read the same.</p>
+  </div>
+
+  <table class="codes">
+    <thead><tr><th>Code</th><th>Meaning</th><th>Code</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>no_identity</td><td>No valid account identifier returned</td><td>no_email</td><td>No verified email address released</td></tr>
+      <tr><td>incomplete_profile</td><td>Missing display name or profile photo</td><td>insufficient_data</td><td>Too few criteria were readable</td></tr>
+      <tr><td>no_badge</td><td>Readable, and none present</td><td>code_expired</td><td>Sign-in link reused or expired</td></tr>
+      <tr><td>no_keyword</td><td>Readable, and no headline match</td><td>access_denied</td><td>Visitor cancelled at the provider</td></tr>
+      <tr><td>consumer_domain</td><td>Consumer or disposable email domain</td><td>bad_state</td><td>Callback reached without a code</td></tr>
+      <tr><td>token_error</td><td>Identity handshake failed</td><td>server_error</td><td>Unhandled exception</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p>The split down the middle of that table is the point. The left column is the policy speaking about the visitor. The right column is the machinery speaking about itself. Merging them &mdash; which is what a single generic failure page does &mdash; produces a system where a transient handshake error and a genuine policy decline are indistinguishable to the person on the receiving end and to the operator reading the logs.</p>
+    <p>Every visitor who does not get through learns precisely which criterion they did not meet, and whether retrying will help.</p>
+  </div>
+</section>
+
+<!-- ============ 08 OPERATIONS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">08<br>Operations</div>
+    <div>
+      <h2>Instrumented so the live system can be reasoned about</h2>
+      <p class="sub">Every decision reconstructable from logs alone, without reproducing it.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>Every request emits a structured JSON decision record: the policy in force, each test's state, whether its data source actually answered, and the final verdict. Any decision the gate has ever made can be reconstructed from logs without re-running it &mdash; which matters more than it sounds for a system whose inputs come from a third party and cannot be replayed on demand.</p>
+
+    <h3>How the function was sized</h3>
+    <p>Those same logs are how the function was configured rather than guessed at. The execution report showed peak memory of 103 MB, so the 512 MB configuration carries real headroom. On Lambda that setting matters more than it looks, because CPU is allocated proportionally to configured memory. Under-provisioning memory throttles the processor, which lengthens cold starts, which pushes the function toward its timeout. The two limits are coupled, and sizing either one without measuring the other is how serverless functions acquire intermittent failures that are miserable to diagnose.</p>
+    <p>The timeout is set at 30 seconds against a multi-hop external identity handshake, for the same reason: a cold start plus a conversation with a third-party provider is not a sub-second operation, and configuring it as though it were converts a slow request into an opaque failure.</p>
+  </div>
+
+  <div class="signals">
+    <div class="signal"><div class="k">Runtime</div><div class="v">Node.js 24.x</div><div class="d">Native fetch and ES modules; no bundler, no packages.</div></div>
+    <div class="signal"><div class="k">Memory</div><div class="v">512 MB</div><div class="d">Peak observed 103 MB. Sized from the execution report, not from a default.</div></div>
+    <div class="signal"><div class="k">Timeout</div><div class="v">30 seconds</div><div class="d">Cold start plus a multi-hop external handshake, with margin.</div></div>
+    <div class="signal"><div class="k">Idle cost</div><div class="v">Zero</div><div class="d">Nothing runs between visits; there is no always-on component to pay for.</div></div>
+  </div>
+
+  <div class="body">
+    <p>Both configuration corrections are recorded in the project's operations notes alongside the evidence that justified them &mdash; confirmed in CloudWatch, the function used 103 MB against its ceiling &mdash; so a future maintainer inherits the reasoning and not merely the values. A number in a config file with no recorded provenance is a number nobody will ever feel safe changing.</p>
+  </div>
+</section>
+
+<!-- ============ 09 BUILD ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">09<br>Build</div>
+    <div>
+      <h2>The running system</h2>
+      <p class="sub">Captured from the live deployment. Account numbers, resource identifiers, endpoints, distribution identifiers, client secrets, signing keys and tokens are permanently redacted.</p>
+    </div>
+  </div>
+
+  <div class="gal">
+    <figure class="wide"><img src="images/rvg-01-architecture.jpg" alt="End-to-end architecture diagram of the verification gateway"><figcaption><b>Architecture</b>From an anonymous click, through federated identity and the five-test policy engine, to either a signed booking credential or a specific rejection reason.</figcaption></figure>
+    <figure><img src="images/rvg-03-verified.jpg" alt="The approval page confirming a verified visitor"><figcaption><b>Approval</b>An approved verdict, with a signed credential minted and a fifteen-minute window to use it.</figcaption></figure>
+    <figure><img src="images/rvg-02-cloudwatch.jpg" alt="CloudWatch log events for the verification function"><figcaption><b>Execution telemetry</b>The authoritative account of what the function did, and the basis on which it was sized.</figcaption></figure>
+    <figure class="wide"><img src="images/rvg-04-booked.jpg" alt="Confirmation that the meeting has been scheduled"><figcaption><b>Definition of done</b>Not "the function returned 200," but a real invitation in a real inbox.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============ 10 SCOPE ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">10<br>Scope</div>
+    <div>
+      <h2>Where the boundary actually sits</h2>
+      <p class="sub">Being precise about the limits of a security control is part of building one.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>This gate raises the cost of abuse substantially. It converts an anonymous click into an authenticated, adjudicated, logged decision, and it does so with zero idle cost and a single public route. Legitimate visitors get through in seconds without a form, and every refusal is explained.</p>
+    <p>What it does not do is make the underlying booking URL unreachable to someone who already has it, because the success page is a static document and a static document cannot hold a signing key. That scope was chosen deliberately, and stating it plainly is not a caveat bolted on at the end &mdash; knowing precisely where your security boundary sits is itself a security control.</p>
+
+    <div class="conviction">A control you cannot describe the edges of is a control you cannot reason about.</div>
+
+    <h3>The next increment, already specified</h3>
+    <ul>
+      <li>Mint single-use booking links through the scheduling provider's API from inside the function, so approval is <em>enforced</em> rather than presented</li>
+      <li>Move credentials into a managed secret store with automatic rotation</li>
+      <li>Promote the badge and headline tests to mandatory once elevated access makes their data reliable &mdash; a change the three-state design already anticipates and the enumeration already covers</li>
+      <li>Express the whole stack as infrastructure as code, so the environment is reproducible rather than described</li>
+    </ul>
+  </div>
+
+  <table>
+    <thead><tr><th>Capability</th><th>State</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Federated identity flow</td><td><span class="chip c-ship">Shipped</span></td><td>Authorization code exchange, CSRF nonce round trip, exact redirect-URI registration</td></tr>
+      <tr><td>Tri-state policy engine</td><td><span class="chip c-ship">Shipped</span></td><td>Five tests, veto set plus passing floor, exhaustively verified across 162 states</td></tr>
+      <tr><td>Signed approval credential</td><td><span class="chip c-ship">Shipped</span></td><td>HMAC-SHA256, 15-minute TTL, replay identifier, timing-safe verification</td></tr>
+      <tr><td>Failure taxonomy</td><td><span class="chip c-ship">Shipped</span></td><td>Twelve reason codes rendered as specific explanations, policy separated from mechanical</td></tr>
+      <tr><td>Structured audit logging</td><td><span class="chip c-ship">Shipped</span></td><td>Full decision record per request; the basis for both tuning and sizing</td></tr>
+      <tr><td>Static delivery &amp; origin lockdown</td><td><span class="chip c-ship">Shipped</span></td><td>CloudFront with Origin Access Control conditioned on the distribution ARN</td></tr>
+      <tr><td>Badge &amp; headline evaluation</td><td><span class="chip c-proto">Prototype</span></td><td>Implemented and logged; returns UNAVAILABLE until elevated provider access is granted</td></tr>
+      <tr><td>Domain enforcement</td><td><span class="chip c-proto">Prototype</span></td><td>Scored and recorded rather than blocking, pending real-traffic evidence</td></tr>
+      <tr><td>Single-use booking links</td><td><span class="chip c-def">Deferred</span></td><td>Specified; requires provider API access. Closes the one gap named above</td></tr>
+      <tr><td>Managed secret rotation</td><td><span class="chip c-def">Deferred</span></td><td>Credentials currently held as environment configuration</td></tr>
+      <tr><td>Infrastructure as code</td><td><span class="chip c-def">Deferred</span></td><td>Stack is documented but provisioned by hand</td></tr>
+      <tr><td>Replay-identifier persistence</td><td><span class="chip c-def">Deferred</span></td><td>Credentials carry a <span class="m">jti</span>; enforcing single use needs a store the design currently avoids</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<!-- ============ CLOSING ============ -->
+<div class="closing">
+  <div class="wrap">
+    <div class="eyebrow" style="margin-bottom:14px">What this build demonstrates</div>
+    <h2>Six services, and the couplings between them</h2>
+    <hr>
+    <p>The engineering value in this system sits in the couplings rather than in any one service: that a region choice becomes part of a hostname a third party must match exactly, that a stage name silently reshapes every registered redirect URI, that configured memory governs CPU allocation and therefore cold-start duration and therefore timeout behaviour. None of those are documented in the place you would look for them.</p>
+    <p>Underneath all of them is the decision I would defend hardest &mdash; modelling verification with three states rather than two. It costs almost nothing to implement, and it determines whether the system is honest about what it actually knows.</p>
+    <ul>
+      <li>Serverless architecture and service selection across the whole request path</li>
+      <li>OAuth 2.0 and OpenID Connect orchestration written directly against the standard library</li>
+      <li>The tri-state policy engine, and admission rules expressed as configuration</li>
+      <li>Exhaustive verification of the decision logic across its entire input space</li>
+      <li>Signed, expiring, evidence-carrying credential design and constant-time verification</li>
+      <li>Least-privilege IAM, origin lockdown and fail-closed defaults designed in from the start</li>
+      <li>Structured observability, and configuration sized from measurement rather than default</li>
+    </ul>
+    <hr>
+    <p class="mono" style="color:#A99BF5">AWS Lambda &middot; API Gateway &middot; S3 &middot; CloudFront &middot; IAM &middot; CloudWatch &middot; LinkedIn OIDC &middot; Node.js</p>
+    <p style="margin-top:22px"><a href="identity-gated-scheduling.html" style="color:#EDEFE9">Read the article &rarr;</a> &nbsp;&middot;&nbsp; <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener" style="color:#EDEFE9">Portfolio &amp; resume</a> &nbsp;&middot;&nbsp; <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="color:#EDEFE9">LinkedIn</a></p>
+  </div>
+</div>
+
+</body>
+</html>
