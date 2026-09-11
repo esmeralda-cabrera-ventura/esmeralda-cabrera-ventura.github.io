@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project details — Esmeralda C. Cabrera Ventura</title>
+<meta name="description" content="Every project in one place: what it is, its status, the stack, and links to both its article and its engineering dossier.">
+<meta property="og:title" content="Project details — Esmeralda C. Cabrera Ventura">
+<meta property="og:description" content="Every project in one place: what it is, its status, the stack, and links to both its article and its engineering dossier.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html" aria-current="page">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="archive-head">
+    <div class="eyebrow">Articles and dossiers, paired</div>
+    <h1>Project details</h1>
+    <p class="tag">Every project in one place. Each has two write-ups: an article that walks the reasoning in a single sitting, and a dossier with the full technical record.</p>
+  </section>
+
+  <p class="count mono" id="project-count"></p>
+
+  <!-- The list below is generated from the PROJECTS list in articles.js.
+       The entries written here are a fallback for visitors with
+       JavaScript disabled; the script replaces them. -->
+  <div id="all-projects">
+
+    <div class="project">
+      <div class="date">Identity &amp; Access · Engineering dossier</div>
+      <h2><a href="employee-identity-lifecycle.html">Employee Identity Lifecycle Automation</a></h2>
+      <p>A desired-state PowerShell engine for joiners, movers and leavers. 983 lines, 30 functions, one audited write path, and four lifecycle events verified 14 of 14 against a live Active Directory domain.</p>
+      <dl class="project-meta">
+        <div><dt>Status</dt><dd>AD path validated in lab; cloud connectors implemented</dd></div>
+        <div><dt>Published</dt><dd>September 2026</dd></div>
+        <div><dt>Stack</dt><dd>PowerShell · Active Directory · Microsoft Graph · Entra ID · Intune · Azure Virtual Desktop</dd></div>
+      </dl>
+      <p class="project-links"><a href="access-that-follows-people.html">Read the article</a><a href="employee-identity-lifecycle.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Serverless · Engineering dossier</div>
+      <h2><a href="serverless-contact-form.html">Serverless Contact Form</a></h2>
+      <p>A contact pipeline for a static site on Amazon SES and AWS Lambda. Zero stored credentials, one IAM action, a success contract that never trusts a 200, and a full CORS incident analysis.</p>
+      <dl class="project-meta">
+        <div><dt>Status</dt><dd>Live in production</dd></div>
+        <div><dt>Published</dt><dd>August 2026</dd></div>
+        <div><dt>Stack</dt><dd>Amazon SES · AWS Lambda · Function URL · IAM · S3 · CloudFront</dd></div>
+      </dl>
+      <p class="project-links"><a href="honest-contact-form.html">Read the article</a><a href="serverless-contact-form.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Agentic AI · Engineering dossier</div>
+      <h2><a href="cybersecurity-multi-agent-system.html">Autonomous Cybersecurity Multi-Agent System</a></h2>
+      <p>Six deployed AI services on IBM watsonx. Five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass.</p>
+      <dl class="project-meta">
+        <div><dt>Status</dt><dd>IBM SkillsBuild capstone</dd></div>
+        <div><dt>Published</dt><dd>July 2026</dd></div>
+        <div><dt>Stack</dt><dd>IBM watsonx.ai · watsonx Orchestrate · LangGraph · Llama 3.3 70B · Vector RAG · Python</dd></div>
+      </dl>
+      <p class="project-links"><a href="autonomous-cybersecurity-agents.html">Read the article</a><a href="cybersecurity-multi-agent-system.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Serverless · Engineering dossier</div>
+      <h2><a href="recruiter-verification-gateway.html">Recruiter Verification Gateway</a></h2>
+      <p>A serverless identity gate on AWS. Six services, one public route, a five-test tri-state policy engine proven across all 162 of its states, and signed fifteen-minute approval credentials.</p>
+      <dl class="project-meta">
+        <div><dt>Status</dt><dd>Live in production</dd></div>
+        <div><dt>Published</dt><dd>July 2026</dd></div>
+        <div><dt>Stack</dt><dd>AWS Lambda · API Gateway · S3 · CloudFront · IAM · CloudWatch · LinkedIn OIDC · Node.js</dd></div>
+      </dl>
+      <p class="project-links"><a href="identity-gated-scheduling.html">Read the article</a><a href="recruiter-verification-gateway.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Full-stack · Engineering dossier</div>
+      <h2><a href="fridge2meal.html">Fridge2Meal</a></h2>
+      <p>An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command.</p>
+      <dl class="project-meta">
+        <div><dt>Status</dt><dd>Full-stack prototype · Computer Science capstone</dd></div>
+        <div><dt>Published</dt><dd>July 2026</dd></div>
+        <div><dt>Stack</dt><dd>React · Node.js · Express · PostgreSQL · Keycloak · Docker Compose</dd></div>
+      </dl>
+      <p class="project-links"><a href="deterministic-by-design.html">Read the article</a><a href="fridge2meal.html">Read the dossier</a></p>
+    </div>
+
+  </div>
+
+  <nav class="pager" id="project-pager" aria-label="Project pages" hidden></nav>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Esmeralda C. Cabrera Ventura</span>
+    <span>
+      <a href="index.html">Home</a> &nbsp;&middot;&nbsp;
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script src="articles.js"></script>
+</body>
+</html>

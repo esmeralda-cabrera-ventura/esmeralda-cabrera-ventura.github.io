@@ -33,6 +33,23 @@
 const ARTICLES = [
 
   {
+    title:   "Access that follows people: a desired-state engine for joiners, movers and leavers",
+    href:    "access-that-follows-people.html",
+    date:    "September 2026",
+    read:    "10 min read",
+    summary: "A PowerShell engine that reads HR records, computes the access each person should hold, and changes only the difference — taken through hire, role change, transfer and termination against a live Active Directory domain."
+  },
+
+  {
+    title:   "An HTTP 200 is not a delivery receipt: building a contact form that cannot lie",
+    href:    "honest-contact-form.html",
+    date:    "August 2026",
+    read:    "11 min read",
+    summary: "A serverless contact form for a static site on Amazon SES and a Lambda Function URL — one IAM action, no stored credentials, and the duplicated CORS header that broke it without losing a single message."
+  },
+
+
+  {
     title:   "Agents as services, not prompts: engineering a deterministic multi-agent SOC analyst",
     href:    "autonomous-cybersecurity-agents.html",
     date:    "July 2026",
@@ -60,49 +77,92 @@ const ARTICLES = [
 
 
 /* ============================================================
-   THE PROJECT LIST — engineering dossiers.
+   THE PROJECT LIST — one entry per project, with its dossier.
    ============================================================
 
-   Works exactly like the article list above. The home page and
-   articles.html each show the five newest entries from this list.
+   This one list drives three places:
+     - dossiers.html          every dossier, 20 per page
+     - projects.html          every project, with its article and dossier
+     - the "Project details"  section on the home page and articles.html
+                              (the five newest, automatically)
 
-   TO PUBLISH A NEW DOSSIER
+   TO PUBLISH A NEW PROJECT
    ------------------------
-   1. Create the dossier's .html file (copy an existing one).
+   1. Create the dossier's .html file (copy an existing one), and the
+      article, if there is one.
    2. Copy the block below, paste the copy at the TOP of the list,
-      and edit its four fields.
-   3. Upload both files. Nothing else to change.
+      and edit its fields.
+   3. Upload the files. Nothing else to change.
 
      {
        title:   "Project name",
-       href:    "my-project.html",
+       href:    "my-project.html",           // the dossier
+       article: "my-project-article.html",   // optional: leave "" if none
        kind:    "Serverless · Engineering dossier",
+       date:    "August 2026",
+       status:  "Live in production",
+       stack:   "AWS Lambda · S3 · CloudFront",
        summary: "One or two sentences. Keep it under about 40 words."
      },
 
-   NEWEST FIRST, same as the articles.
+   NEWEST FIRST, same as the articles. Only title, href, kind and
+   summary are required; the others simply don't show if left out.
    ============================================================ */
 
 const PROJECTS = [
 
   {
+    title:   "Employee Identity Lifecycle Automation",
+    href:    "employee-identity-lifecycle.html",
+    article: "access-that-follows-people.html",
+    kind:    "Identity & Access · Engineering dossier",
+    date:    "September 2026",
+    status:  "AD path validated in lab; cloud connectors implemented",
+    stack:   "PowerShell · Active Directory · Microsoft Graph · Entra ID · Intune · Azure Virtual Desktop",
+    summary: "A desired-state PowerShell engine for joiners, movers and leavers. 983 lines, 30 functions, one audited write path, and four lifecycle events verified 14 of 14 against a live Active Directory domain."
+  },
+
+  {
+    title:   "Serverless Contact Form",
+    href:    "serverless-contact-form.html",
+    article: "honest-contact-form.html",
+    kind:    "Serverless · Engineering dossier",
+    date:    "August 2026",
+    status:  "Live in production",
+    stack:   "Amazon SES · AWS Lambda · Function URL · IAM · S3 · CloudFront",
+    summary: "A contact pipeline for a static site on Amazon SES and AWS Lambda. Zero stored credentials, one IAM action, a success contract that never trusts a 200, and a full CORS incident analysis."
+  },
+
+  {
     title:   "Autonomous Cybersecurity Multi-Agent System",
     href:    "cybersecurity-multi-agent-system.html",
+    article: "autonomous-cybersecurity-agents.html",
     kind:    "Agentic AI · Engineering dossier",
+    date:    "July 2026",
+    status:  "IBM SkillsBuild capstone",
+    stack:   "IBM watsonx.ai · watsonx Orchestrate · LangGraph · Llama 3.3 70B · Vector RAG · Python",
     summary: "Six deployed AI services on IBM watsonx. Five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass."
   },
 
   {
     title:   "Recruiter Verification Gateway",
     href:    "recruiter-verification-gateway.html",
+    article: "identity-gated-scheduling.html",
     kind:    "Serverless · Engineering dossier",
+    date:    "July 2026",
+    status:  "Live in production",
+    stack:   "AWS Lambda · API Gateway · S3 · CloudFront · IAM · CloudWatch · LinkedIn OIDC · Node.js",
     summary: "A serverless identity gate on AWS. Six services, one public route, a five-test tri-state policy engine proven across all 162 of its states, and signed fifteen-minute approval credentials."
   },
 
   {
     title:   "Fridge2Meal",
     href:    "fridge2meal.html",
+    article: "deterministic-by-design.html",
     kind:    "Full-stack · Engineering dossier",
+    date:    "July 2026",
+    status:  "Full-stack prototype · Computer Science capstone",
+    stack:   "React · Node.js · Express · PostgreSQL · Keycloak · Docker Compose",
     summary: "An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command."
   }
 
@@ -116,8 +176,8 @@ const PROJECTS = [
 (function () {
   "use strict";
 
-  var PER_PAGE_HOME = 5;    // how many show on the home page
-  var PER_PAGE_ARCHIVE = 20; // how many show per page of articles.html
+  var PER_PAGE_HOME = 5;     // how many show on the home page
+  var PER_PAGE_ARCHIVE = 20; // how many show per archive page
 
   function esc(s) {
     return String(s)
@@ -125,7 +185,7 @@ const PROJECTS = [
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function entryHTML(a) {
+  function articleHTML(a) {
     return '<a class="entry" href="' + esc(a.href) + '">' +
              '<div class="date">' + esc(a.date) +
                (a.read ? ' &middot; ' + esc(a.read) : '') + '</div>' +
@@ -134,37 +194,51 @@ const PROJECTS = [
            '</a>';
   }
 
-  function renderList(el, items) {
-    el.innerHTML = items.map(entryHTML).join("");
+  function dossierHTML(p) {
+    return '<a class="entry" href="' + esc(p.href) + '">' +
+             '<div class="date">' + esc(p.kind) + '</div>' +
+             '<h2>' + esc(p.title) + '</h2>' +
+             '<p>' + esc(p.summary) + '</p>' +
+           '</a>';
   }
 
-  /* ---------- home page: newest five ---------- */
-  var home = document.getElementById("latest-articles");
-  if (home) {
-    renderList(home, ARTICLES.slice(0, PER_PAGE_HOME));
-    var more = document.getElementById("more-articles");
-    if (more && ARTICLES.length > PER_PAGE_HOME) {
-      more.hidden = false;
+  /* A project record: the dossier title and summary, plus links to
+     both the article and the dossier. "detailed" adds status, date
+     and stack, and is used on projects.html. */
+  function projectHTML(p, detailed) {
+    var html = '<div class="project">' +
+      '<div class="date">' + esc(p.kind) +
+        (!detailed && p.date ? ' &middot; ' + esc(p.date) : '') + '</div>' +
+      '<h2><a href="' + esc(p.href) + '">' + esc(p.title) + '</a></h2>' +
+      '<p>' + esc(p.summary) + '</p>';
+
+    if (detailed) {
+      var rows = [];
+      if (p.status) { rows.push(['Status', esc(p.status)]); }
+      if (p.date)   { rows.push(['Published', esc(p.date)]); }
+      if (p.stack)  { rows.push(['Stack', esc(p.stack)]); }
+      if (rows.length) {
+        html += '<dl class="project-meta">' + rows.map(function (r) {
+          return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>';
+        }).join("") + '</dl>';
+      }
     }
+
+    html += '<p class="project-links">';
+    if (p.article) {
+      html += '<a href="' + esc(p.article) + '">Read the article</a>';
+    }
+    html += '<a href="' + esc(p.href) + '">Read the dossier</a></p></div>';
+    return html;
   }
 
-  /* ---------- project detail: newest five, on every page that asks ---------- */
-  var projects = document.getElementById("latest-projects");
-  if (projects && typeof PROJECTS !== "undefined") {
-    projects.innerHTML = PROJECTS.slice(0, PER_PAGE_HOME).map(function (p) {
-      return '<a class="entry" href="' + esc(p.href) + '">' +
-               '<div class="date">' + esc(p.kind) + '</div>' +
-               '<h2>' + esc(p.title) + '</h2>' +
-               '<p>' + esc(p.summary) + '</p>' +
-             '</a>';
-    }).join("");
-  }
+  /* Paged archive shared by articles.html, dossiers.html and projects.html */
+  function renderArchive(opts) {
+    var el = document.getElementById(opts.listId);
+    if (!el) { return; }
 
-  /* ---------- archive page: 20 per page, with paging ---------- */
-  var archive = document.getElementById("all-articles");
-  if (archive) {
     var params = new URLSearchParams(window.location.search);
-    var total = ARTICLES.length;
+    var total = opts.items.length;
     var pages = Math.max(1, Math.ceil(total / PER_PAGE_ARCHIVE));
 
     var page = parseInt(params.get("page"), 10);
@@ -172,41 +246,83 @@ const PROJECTS = [
     if (page > pages) { page = pages; }
 
     var start = (page - 1) * PER_PAGE_ARCHIVE;
-    var slice = ARTICLES.slice(start, start + PER_PAGE_ARCHIVE);
-    renderList(archive, slice);
+    var slice = opts.items.slice(start, start + PER_PAGE_ARCHIVE);
+    el.innerHTML = slice.map(opts.render).join("");
 
-    var count = document.getElementById("article-count");
+    var count = document.getElementById(opts.countId);
     if (count) {
       var first = total === 0 ? 0 : start + 1;
       var last = start + slice.length;
       count.textContent = total === 0
-        ? "No articles yet."
+        ? "Nothing published yet."
         : "Showing " + first + "\u2013" + last + " of " + total +
           (pages > 1 ? " \u00b7 page " + page + " of " + pages : "");
     }
 
-    var pager = document.getElementById("pager");
+    var pager = document.getElementById(opts.pagerId);
     if (pager) {
       var html = "";
       if (page < pages) {
-        html += '<a class="pager-link" rel="next" href="articles.html?page=' +
-                (page + 1) + '">&larr; Older articles</a>';
+        html += '<a class="pager-link" rel="next" href="' + opts.file + '?page=' +
+                (page + 1) + '">&larr; Older ' + opts.noun + '</a>';
       } else {
-        html += '<span class="pager-link is-off">&larr; Older articles</span>';
+        html += '<span class="pager-link is-off">&larr; Older ' + opts.noun + '</span>';
       }
       if (page > 1) {
         var prev = page - 1;
-        html += '<a class="pager-link" rel="prev" href="articles.html' +
-                (prev === 1 ? '' : '?page=' + prev) + '">Newer articles &rarr;</a>';
+        html += '<a class="pager-link" rel="prev" href="' + opts.file +
+                (prev === 1 ? '' : '?page=' + prev) + '">Newer ' + opts.noun + ' &rarr;</a>';
       } else {
-        html += '<span class="pager-link is-off">Newer articles &rarr;</span>';
+        html += '<span class="pager-link is-off">Newer ' + opts.noun + ' &rarr;</span>';
       }
       pager.innerHTML = html;
       pager.hidden = (pages < 2);
     }
 
-    document.title = (page > 1)
-      ? "Articles \u2014 page " + page + " \u2014 Esmeralda C. Cabrera Ventura"
-      : "Articles \u2014 Esmeralda C. Cabrera Ventura";
+    if (page > 1) {
+      document.title = opts.heading + " \u2014 page " + page +
+                       " \u2014 Esmeralda C. Cabrera Ventura";
+    }
+  }
+
+  var hasProjects = (typeof PROJECTS !== "undefined");
+
+  /* ---------- home page: newest five articles ---------- */
+  var home = document.getElementById("latest-articles");
+  if (home) {
+    home.innerHTML = ARTICLES.slice(0, PER_PAGE_HOME).map(articleHTML).join("");
+    var more = document.getElementById("more-articles");
+    if (more && ARTICLES.length > PER_PAGE_HOME) { more.hidden = false; }
+  }
+
+  /* ---------- project details: newest five, on every page that asks ---------- */
+  var latestProjects = document.getElementById("latest-projects");
+  if (latestProjects && hasProjects) {
+    latestProjects.innerHTML = PROJECTS.slice(0, PER_PAGE_HOME).map(function (p) {
+      return projectHTML(p, false);
+    }).join("");
+    var moreProjects = document.getElementById("more-projects");
+    if (moreProjects && PROJECTS.length > PER_PAGE_HOME) { moreProjects.hidden = false; }
+  }
+
+  /* ---------- archives ---------- */
+  renderArchive({
+    listId: "all-articles", countId: "article-count", pagerId: "pager",
+    items: ARTICLES, render: articleHTML,
+    file: "articles.html", noun: "articles", heading: "Articles"
+  });
+
+  if (hasProjects) {
+    renderArchive({
+      listId: "all-dossiers", countId: "dossier-count", pagerId: "dossier-pager",
+      items: PROJECTS, render: dossierHTML,
+      file: "dossiers.html", noun: "dossiers", heading: "Dossiers"
+    });
+
+    renderArchive({
+      listId: "all-projects", countId: "project-count", pagerId: "project-pager",
+      items: PROJECTS, render: function (p) { return projectHTML(p, true); },
+      file: "projects.html", noun: "projects", heading: "Project details"
+    });
   }
 })();

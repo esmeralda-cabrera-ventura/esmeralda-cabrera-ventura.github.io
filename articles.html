@@ -20,7 +20,9 @@
     <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
     <nav>
       <a href="index.html#about">About</a>
-      <a href="articles.html">Articles</a>
+      <a href="articles.html" aria-current="page">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
       <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
       <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
     </nav>
@@ -41,6 +43,18 @@
        here are a fallback for visitors with JavaScript disabled; the
        script replaces them. You never need to edit this fallback. -->
   <div id="all-articles">
+
+    <a class="entry" href="access-that-follows-people.html">
+      <div class="date">September 2026 &middot; 10 min read</div>
+      <h2>Access that follows people: a desired-state engine for joiners, movers and leavers</h2>
+      <p>A PowerShell engine that reads HR records, computes the access each person should hold, and changes only the difference — taken through hire, role change, transfer and termination against a live Active Directory domain.</p>
+    </a>
+
+    <a class="entry" href="honest-contact-form.html">
+      <div class="date">August 2026 &middot; 11 min read</div>
+      <h2>An HTTP 200 is not a delivery receipt: building a contact form that cannot lie</h2>
+      <p>A serverless contact form for a static site on Amazon SES and a Lambda Function URL — one IAM action, no stored credentials, and the duplicated CORS header that broke it without losing a single message.</p>
+    </a>
 
     <a class="entry" href="autonomous-cybersecurity-agents.html">
       <div class="date">July 2026 &middot; 9 min read</div>
@@ -64,38 +78,53 @@
 
   <nav class="pager" id="pager" aria-label="Article pages" hidden></nav>
 
-  <h2 class="section-label">Project detail</h2>
+  <h2 class="section-label"><a href="projects.html">Project details &rarr;</a></h2>
 
-  <!-- ============================================================
-       Generated from the PROJECTS list in articles.js — the five
-       newest dossiers, automatically. To publish a new one, add an
-       entry at the top of that list. Nothing here needs editing.
-
-       The blocks below are a fallback for visitors with JavaScript
-       disabled; the script replaces them.
-       ============================================================ -->
+  <!-- Generated from the PROJECTS list in articles.js — the five newest
+       projects. The blocks below are a no-JavaScript fallback. -->
 
   <div id="latest-projects">
 
-    <a class="entry" href="cybersecurity-multi-agent-system.html">
-      <div class="date">Agentic AI &middot; Engineering dossier</div>
-      <h2>Autonomous Cybersecurity Multi-Agent System</h2>
+    <div class="project">
+      <div class="date">Identity &amp; Access · Engineering dossier &middot; September 2026</div>
+      <h2><a href="employee-identity-lifecycle.html">Employee Identity Lifecycle Automation</a></h2>
+      <p>A desired-state PowerShell engine for joiners, movers and leavers. 983 lines, 30 functions, one audited write path, and four lifecycle events verified 14 of 14 against a live Active Directory domain.</p>
+      <p class="project-links"><a href="access-that-follows-people.html">Read the article</a><a href="employee-identity-lifecycle.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Serverless · Engineering dossier &middot; August 2026</div>
+      <h2><a href="serverless-contact-form.html">Serverless Contact Form</a></h2>
+      <p>A contact pipeline for a static site on Amazon SES and AWS Lambda. Zero stored credentials, one IAM action, a success contract that never trusts a 200, and a full CORS incident analysis.</p>
+      <p class="project-links"><a href="honest-contact-form.html">Read the article</a><a href="serverless-contact-form.html">Read the dossier</a></p>
+    </div>
+
+    <div class="project">
+      <div class="date">Agentic AI · Engineering dossier &middot; July 2026</div>
+      <h2><a href="cybersecurity-multi-agent-system.html">Autonomous Cybersecurity Multi-Agent System</a></h2>
       <p>Six deployed AI services on IBM watsonx. Five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass.</p>
-    </a>
+      <p class="project-links"><a href="autonomous-cybersecurity-agents.html">Read the article</a><a href="cybersecurity-multi-agent-system.html">Read the dossier</a></p>
+    </div>
 
-    <a class="entry" href="recruiter-verification-gateway.html">
-      <div class="date">Serverless &middot; Engineering dossier</div>
-      <h2>Recruiter Verification Gateway</h2>
+    <div class="project">
+      <div class="date">Serverless · Engineering dossier &middot; July 2026</div>
+      <h2><a href="recruiter-verification-gateway.html">Recruiter Verification Gateway</a></h2>
       <p>A serverless identity gate on AWS. Six services, one public route, a five-test tri-state policy engine proven across all 162 of its states, and signed fifteen-minute approval credentials.</p>
-    </a>
+      <p class="project-links"><a href="identity-gated-scheduling.html">Read the article</a><a href="recruiter-verification-gateway.html">Read the dossier</a></p>
+    </div>
 
-    <a class="entry" href="fridge2meal.html">
-      <div class="date">Full-stack &middot; Engineering dossier</div>
-      <h2>Fridge2Meal</h2>
+    <div class="project">
+      <div class="date">Full-stack · Engineering dossier &middot; July 2026</div>
+      <h2><a href="fridge2meal.html">Fridge2Meal</a></h2>
       <p>An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command.</p>
-    </a>
+      <p class="project-links"><a href="deterministic-by-design.html">Read the article</a><a href="fridge2meal.html">Read the dossier</a></p>
+    </div>
 
   </div>
+
+  <p class="more-link" id="more-projects" hidden>
+    <a href="projects.html">See all projects &rarr;</a>
+  </p>
 
 </main>
 
@@ -104,6 +133,8 @@
     <span class="mono">Esmeralda C. Cabrera Ventura</span>
     <span>
       <a href="index.html">Home</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
       <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
       <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
       <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>

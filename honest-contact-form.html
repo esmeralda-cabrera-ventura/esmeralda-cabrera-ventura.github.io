@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An HTTP 200 is not a delivery receipt: building a contact form that cannot lie</title>
+<meta name="description" content="How I built a serverless contact-form backend for a static site on Amazon SES and AWS Lambda — one IAM action, no stored credentials, and a failure path designed as carefully as the success path.">
+<meta property="og:title" content="An HTTP 200 is not a delivery receipt: building a contact form that cannot lie">
+<meta property="og:description" content="A serverless contact form on Amazon SES and a Lambda Function URL, the duplicated CORS header that broke it, and why nothing was lost when it did.">
+<meta property="og:image" content="images/cf-01-architecture.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Serverless &middot; Failure design</div>
+  <h1>An HTTP 200 is not a delivery receipt: building a contact form that cannot lie</h1>
+  <p class="standfirst">How I gave a static portfolio site a working contact form on Amazon SES and AWS Lambda — with one IAM action, no stored credentials, and a failure path engineered as carefully as the success path.</p>
+  <div class="byline">August 2026 &middot; 11 min read</div>
+
+  <p>A static website cannot process a form. My portfolio is HTML, CSS and JavaScript sitting in an S3 bucket behind CloudFront, and that architecture is fast, cheap and very hard to break. It also has one structural gap: there is no process running anywhere that can receive an HTTP POST. A contact form on a site like that needs somewhere else to send its data.</p>
+
+  <p>There are three conventional answers. A <span class="m">mailto:</span> link needs no infrastructure, but it depends on the visitor having a configured desktop mail client. On a phone, or in a browser signed into webmail, it often does nothing at all — the visitor experiences a broken link, and I never learn anyone tried. A third-party form service is quick to adopt and usually well engineered, but it puts an outside company in the path of a core function of the site and routes visitor messages through them. The third option is a small backend of my own.</p>
+
+  <p>I chose the third. Cost did not decide it, because all three are close to free at portfolio volume. Control and learning value did: the message path stays inside infrastructure I own, and a contact form is a low-stakes place to make mistakes with IAM policies and cross-origin headers. I made one of those mistakes, and it turned out to be the most useful part of the build.</p>
+
+  <h2>Requirements, fixed before any resource existed</h2>
+
+  <p>The requirements were modest, and I wrote them down before creating anything, so that every later decision had something to be measured against.</p>
+
+  <ul>
+    <li>Deliver each message to a single inbox</li>
+    <li>Accept submissions only from the portfolio's own origin</li>
+    <li>Never silently lose a message</li>
+    <li>Hold no credentials in client-side code, which is public by definition</li>
+    <li>Be cheap enough to leave running indefinitely without thinking about it</li>
+  </ul>
+
+  <p>The third line is the one that shaped the design most, and it is the easiest to underrate. Losing a message loudly is a bug. Losing it silently is a broken promise to someone who took the time to write.</p>
+
+  <figure>
+    <img src="images/cf-01-architecture.jpg" alt="Architecture diagram of the serverless contact form: visitor, Function URL, Lambda, SES and inbox, with the response contract, failure path and IAM role">
+    <figcaption>The whole system: four AWS components in the request path, one round trip from the browser, and a response the client has to read rather than assume.</figcaption>
+  </figure>
+
+  <h2>The smallest backend that does the job correctly</h2>
+
+  <p>The finished request path has four AWS components. Amazon SES provides a verified sending identity. A Lambda function receives the submission, validates it and calls SES. An IAM role grants that function exactly one permission. A Lambda Function URL exposes the function to the browser over HTTPS.</p>
+
+  <p>There is no API Gateway. That was deliberate. API Gateway brings request validation, throttling, usage plans, custom domains, WAF integration and staged deployments — genuinely useful features that this endpoint does not need. It has one route, one method and one consumer. A Function URL is a built-in HTTPS endpoint attached directly to the function, with CORS configuration and very little else, which is an accurate match for the requirement.</p>
+
+  <p>Simplicity has a price, and it is worth naming rather than discovering. There is no built-in rate limiting. There is no WAF in front of the endpoint. The hostname is AWS-generated rather than a custom domain. And the auth type is NONE, which means anyone who learns the URL can invoke the function. I come back to what that means, and why I accepted it, further down.</p>
+
+  <h3>SES over an SMTP relay</h3>
+
+  <p>SES is an API-first sending service that lives in the same account and IAM model as everything else. That matters more than it first appears. The function can be granted permission to send through its execution role, using temporary credentials that AWS issues and rotates, so no password is stored anywhere. An SMTP relay would need a username and password held somewhere and rotated by hand. Removing a long-lived credential from the design removes an entire category of failure.</p>
+
+  <p>The trade-off is the SES sandbox: new accounts can only send to verified addresses. For a single verified inbox that costs nothing today. It becomes a real constraint the moment the system needs to email the visitor — to acknowledge receipt, for example.</p>
+
+  <h3>Configuration out of the source</h3>
+
+  <p>Three values that would otherwise be hard-coded are environment variables: <span class="m">ALLOWED_ORIGIN</span>, <span class="m">FROM_ADDRESS</span> and <span class="m">TO_ADDRESS</span>. None is a secret in the cryptographic sense, but keeping them out of the code has practical benefits. The recipient can change without a redeploy. The same function can point at a staging origin. And the source can be shared or published without exposing personal addresses. Lambda encrypts environment variables at rest with a service-managed key, which suits configuration of this kind; a genuine secret such as an API token would belong in Secrets Manager or Parameter Store instead.</p>
+
+  <h2>One IAM action, not a managed policy</h2>
+
+  <p>Lambda creates an execution role automatically, and that role starts with permission to write CloudWatch Logs and nothing more. Sending email needs an additional grant, and this is the point where convenience is most tempting. Attaching a broad managed policy such as <span class="m">AmazonSESFullAccess</span> would work immediately. It would also let the function delete identities, alter the suppression list and read sending statistics.</p>
+
+  <p>Instead I wrote an inline policy, <span class="m">SendContactFormEmail</span>, that grants a single action: <span class="m">ses:SendEmail</span>. If the function were ever compromised through a payload-handling bug, the attacker would inherit the ability to send email and nothing else. It cost about ninety seconds of extra work.</p>
+
+  <figure>
+    <img src="images/cf-04-iam-policy.jpg" alt="The IAM policy editor showing an inline policy that allows only ses:SendEmail">
+    <figcaption>The whole grant. IAM surfaces it across the SES, SES v2 and Pinpoint Email APIs, but the access level stays limited to that one write action.</figcaption>
+  </figure>
+
+  <p>It is not yet as narrow as it could be. The resource is a wildcard. Scoping it to the ARN of the one verified identity, and adding a condition on the permitted From address, would reduce the compromised-function case from "send as any identity in the account" to "send as one identity, from one address." That is on the list.</p>
+
+  <h2>Designing the failure before the success</h2>
+
+  <p>This is the decision with the most thought behind it and the least visibility in the infrastructure.</p>
+
+  <p>A Lambda function that catches an SES exception and returns normally still produces an HTTP 200. A client that treats 200 as success will then tell the visitor their message was sent when it was not. The visitor closes the tab, and the message is gone. Nothing in the logs looks like an error from the browser's point of view, because from the browser's point of view nothing failed.</p>
+
+  <blockquote>A 200 means the function ran and returned. It does not mean anyone's email was accepted for delivery.</blockquote>
+
+  <p>So the handler reports its own outcome in an explicit <span class="m">success</span> field in the response body, and the client script checks that field — never the status code. When delivery fails, the form does not show a generic error. It says plainly that the message did not go through, confirms that nothing the visitor typed has been lost, and offers a pre-filled mail draft containing their message along with a fallback address to write to directly. Until the endpoint is configured at all, the form says that too, rather than failing silently.</p>
+
+  <p>A contact form that quietly loses messages is worse than having no contact form, because it also spends the visitor's goodwill. Treating the failure path as a first-class design problem was my answer to the third requirement. I did not expect to need it on the very first live submission.</p>
+
+  <h2>The first live submission failed</h2>
+
+  <p>With the function deployed, the client script uploaded to the bucket and the CloudFront cache invalidated, I submitted a test message from the production site. The browser console reported that the request had been blocked by CORS policy: the <span class="m">Access-Control-Allow-Origin</span> header contained multiple values where only one is allowed. The network entry showed a 200 status alongside a failed fetch — exactly the confusing combination the response contract was built for.</p>
+
+  <figure>
+    <img src="images/cf-06-cors-failure.jpg" alt="The live contact page showing a failure notice beneath the form, with the browser console reporting a duplicated CORS header">
+    <figcaption>The bug and the safety net in one frame. The console names a duplicated header; below the form, the visitor is told the message did not go through and offered a way to send it anyway.</figcaption>
+  </figure>
+
+  <h3>Root cause: two correct layers, jointly broken</h3>
+
+  <p>CORS headers were being applied in two independent places. The Function URL has its own CORS configuration, and when it is enabled the Lambda service attaches headers to the response on the way out. I had configured it correctly: one permitted origin, the <span class="m">content-type</span> header, POST only, credentials off. The handler code was also building an <span class="m">Access-Control-Allow-Origin</span> header from its <span class="m">ALLOWED_ORIGIN</span> variable and returning it explicitly.</p>
+
+  <p>Neither layer was wrong. Each did precisely what it had been told to do. The response that reached the browser simply carried the header twice, the CORS specification requires a single origin value, and the browser rejected the response — after the function had already run to completion.</p>
+
+  <p>This class of bug is characteristic of platform features that overlap with application code. The Function URL's CORS panel presents itself as the way to configure CORS, and it is. A handler that sets its own headers is also correct, and is exactly what the code would need behind API Gateway or any other front door. Individually reasonable, jointly broken, and nothing in either interface mentions the other.</p>
+
+  <p>The diagnostic signal was precise and worth remembering. A CORS error that names a header and says it contains <em>multiple values</em> is not describing a misconfigured origin. It is describing duplication — two things are setting the same header, and one of them has to stop.</p>
+
+  <h3>The fix, and why this direction</h3>
+
+  <p>I disabled CORS on the Function URL and left the handler as the single owner of the header. Two reasons tipped it that way. The handler already reads <span class="m">ALLOWED_ORIGIN</span>, so the permitted origin lives with the rest of the configuration and can change without touching the URL settings. And header logic that lives in code travels with the code if the endpoint ever moves behind API Gateway.</p>
+
+  <figure>
+    <img src="images/cf-07-cors-fix.jpg" alt="The Function URL configuration with the CORS option unchecked">
+    <figcaption>The fix is one unchecked box. The reverse choice — deleting the header code and trusting the platform — would have been equally valid. What matters is that exactly one layer owns the header.</figcaption>
+  </figure>
+
+  <p>The incident cost nothing. It happened on a test submission, and the recovery path behaved as designed. Had the client trusted the 200, the same bug would have produced a form that appeared to work perfectly while discarding every message it received — the kind of defect you discover months later, by accident, when someone mentions they wrote and never heard back.</p>
+
+  <figure>
+    <img src="images/cf-08-delivered.jpg" alt="The delivered contact-form email in an inbox, with personal contact fields redacted">
+    <figcaption>Definition of done: a message composed on a static site, delivered intact to a real inbox. The "via amazonses.com" annotation is the one remaining flaw, explained below.</figcaption>
+  </figure>
+
+  <h2>Being precise about the security boundary</h2>
+
+  <p>The most important property of the system is that it holds no long-lived credentials. The function gets temporary credentials through its role, the role can do one thing beyond logging, and there is no access key in the client, the source or the environment.</p>
+
+  <p>The endpoint itself is public. With auth type NONE, Lambda performs no authentication and the resource-based policy allows invocation by any principal. CORS restricts which origins a <em>browser</em> will let read the response. It does nothing to stop a direct request from curl, a script or another server. CORS here is a browser-side convenience, not a security boundary, and it would be a mistake to describe it as one.</p>
+
+  <p>I accepted that risk deliberately and kept the blast radius small. A successful invocation sends one email to a fixed address the caller cannot influence, because the recipient comes from configuration rather than the request. The realistic worst case is inbox spam and a Lambda bill, not data disclosure or lateral movement. It is still a gap, and the mitigations are cheap: reserved concurrency to cap how far a flood can scale, a honeypot field, a CAPTCHA or proof-of-work challenge, and per-IP rate limiting in the handler.</p>
+
+  <h2>What is still weak</h2>
+
+  <p>The most consequential open issue is the sending identity. I verified a single email address rather than a whole domain, because address verification takes a click and domain verification means publishing DNS records and waiting. The console warned me at the time that sending from an address identity without a verified domain can get messages quarantined or rejected under the receiving domain's DMARC policy.</p>
+
+  <figure>
+    <img src="images/cf-02-dmarc-warning.jpg" alt="The SES Create identity screen with email address selected and a warning about DMARC">
+    <figcaption>The warning I chose to proceed past. It was the right call for a first iteration, and it is the first thing that should change.</figcaption>
+  </figure>
+
+  <p>The address belongs to a public mail provider whose domain the account does not control, so SES cannot produce SPF or DKIM alignment for it, and the message fails DMARC alignment at the receiving end. The "via amazonses.com" label in the delivered mail is the recipient's client reporting exactly that mismatch, and mail in that state is more likely to be filtered as spam. The fix is well understood: verify the site's own domain in SES, publish the DKIM records, send from an address at that domain, and put the visitor's address in Reply-To so replies still reach them.</p>
+
+  <p>The remaining gaps are operational. There is no alarm on function errors or on SES bounce and complaint rates. Log groups have no retention policy. The function was created on a preview Node.js runtime and should be pinned to a generally available one. A header comment still describes an API Gateway deployment that no longer exists. And deployment — edit, upload, invalidate — is manual, which is fine at this scale and the obvious first thing to automate.</p>
+
+  <h2>What the build demonstrates</h2>
+
+  <p>At portfolio volume the running cost rounds to zero. Lambda's free tier covers far more requests and compute than a contact form will ever see, SES bills per thousand messages, and nothing runs between submissions, so there is no idle cost at all. The only line item likely to grow unattended is CloudWatch Logs, which is one more reason to set that retention policy.</p>
+
+  <p>The judgements that hold up best are the small, disciplined ones: a single IAM action instead of a convenient managed policy, configuration lifted out of the source, and the refusal to treat a status code as proof of delivery. That last one is what turned a production CORS bug from a silent, message-losing failure into a visible, recoverable one.</p>
+
+  <p>One smaller lesson came from writing it up. The SES verification emails contained a confirmation link carrying an access key identifier and a request signature. Those links were single-use and long expired, but automated notification emails routinely carry credential material, and they deserve the same care as anything else when screenshotted.</p>
+
+  <blockquote>Design the failure path with the same care as the success path. It is the one your users meet on your worst day.</blockquote>
+
+  <hr>
+
+  <p class="mono stackline">Amazon SES &middot; AWS Lambda &middot; Lambda Function URL &middot; IAM &middot; S3 &middot; CloudFront &middot; CloudWatch &middot; Node.js</p>
+
+  <p><a href="serverless-contact-form.html">Read the full engineering dossier &rarr;</a></p>
+
+  <p class="note">The full technical report, with 33 captioned build screenshots, is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

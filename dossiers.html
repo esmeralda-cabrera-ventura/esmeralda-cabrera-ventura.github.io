@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dossiers — Esmeralda C. Cabrera Ventura</title>
+<meta name="description" content="Every engineering dossier: long-form technical accounts of the systems I have designed and built, with architecture, decisions, verification and status.">
+<meta property="og:title" content="Dossiers — Esmeralda C. Cabrera Ventura">
+<meta property="og:description" content="Every engineering dossier: long-form technical accounts of the systems I have designed and built, with architecture, decisions, verification and status.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html" aria-current="page">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="archive-head">
+    <div class="eyebrow">Long-form technical records</div>
+    <h1>Dossiers</h1>
+    <p class="tag">The long-form record behind each project: architecture, the decisions and what they cost, how it was verified, and an honest status of what is shipped and what is not. Each dossier is self-contained, so it can be sent or printed on its own.</p>
+  </section>
+
+  <p class="count mono" id="dossier-count"></p>
+
+  <!-- The list below is generated from the PROJECTS list in articles.js.
+       The entries written here are a fallback for visitors with
+       JavaScript disabled; the script replaces them. -->
+  <div id="all-dossiers">
+
+    <a class="entry" href="employee-identity-lifecycle.html">
+      <div class="date">Identity &amp; Access · Engineering dossier</div>
+      <h2>Employee Identity Lifecycle Automation</h2>
+      <p>A desired-state PowerShell engine for joiners, movers and leavers. 983 lines, 30 functions, one audited write path, and four lifecycle events verified 14 of 14 against a live Active Directory domain.</p>
+    </a>
+
+    <a class="entry" href="serverless-contact-form.html">
+      <div class="date">Serverless · Engineering dossier</div>
+      <h2>Serverless Contact Form</h2>
+      <p>A contact pipeline for a static site on Amazon SES and AWS Lambda. Zero stored credentials, one IAM action, a success contract that never trusts a 200, and a full CORS incident analysis.</p>
+    </a>
+
+    <a class="entry" href="cybersecurity-multi-agent-system.html">
+      <div class="date">Agentic AI · Engineering dossier</div>
+      <h2>Autonomous Cybersecurity Multi-Agent System</h2>
+      <p>Six deployed AI services on IBM watsonx. Five specialist agents chained under a supervising orchestrator, grounded by trusted hybrid retrieval, executed as a deterministic single pass.</p>
+    </a>
+
+    <a class="entry" href="recruiter-verification-gateway.html">
+      <div class="date">Serverless · Engineering dossier</div>
+      <h2>Recruiter Verification Gateway</h2>
+      <p>A serverless identity gate on AWS. Six services, one public route, a five-test tri-state policy engine proven across all 162 of its states, and signed fifteen-minute approval credentials.</p>
+    </a>
+
+    <a class="entry" href="fridge2meal.html">
+      <div class="date">Full-stack · Engineering dossier</div>
+      <h2>Fridge2Meal</h2>
+      <p>An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command.</p>
+    </a>
+
+  </div>
+
+  <nav class="pager" id="dossier-pager" aria-label="Dossier pages" hidden></nav>
+
+  <p class="more-link">
+    <a href="projects.html">See each project with its article &rarr;</a>
+  </p>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Esmeralda C. Cabrera Ventura</span>
+    <span>
+      <a href="index.html">Home</a> &nbsp;&middot;&nbsp;
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.github.com/esmeralda-cabrera-ventura" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script src="articles.js"></script>
+</body>
+</html>
