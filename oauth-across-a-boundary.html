@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAuth across a boundary: joining a public identity provider to a private service</title>
+<meta name="description" content="Connecting a Google Nest thermostat to a self-hosted control plane through Google Cloud — an OAuth 2.0 trust chain across two consoles, an event-driven Pub/Sub pipeline, and a silent authentication failure diagnosed structurally.">
+<meta property="og:title" content="OAuth across a boundary: joining a public identity provider to a private service">
+<meta property="og:description" content="A four-link OAuth trust chain, events instead of polling, and the redirect-boundary failure that completes successfully on one side and produces nothing on the other.">
+<meta property="og:image" content="images/nest-01-architecture.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Cloud identity &middot; Event-driven architecture</div>
+  <h1>OAuth across a boundary: joining a public identity provider to a private service</h1>
+  <p class="standfirst">A Nest thermostat has no local API, so reaching it means becoming a registered OAuth client of Google's cloud. The thermostat turned out to be the smallest part of the problem.</p>
+  <div class="byline">January 2026 &middot; 11 min read</div>
+
+  <p>A Google Nest thermostat is a closed appliance. It has no local HTTP API, exposes no LAN control protocol, and will not answer anything on the home network. It maintains exactly one outbound relationship, to Google's backend. Any platform that wants to read its temperature or change its setpoint has to go through Google, as an authenticated third party, on Google's terms.</p>
+
+  <p>Those terms have narrowed. The old "Works with Nest" partner program was retired, leaving the Smart Device Management API as the only supported route. Access is not a button on the device. It requires enrolling in a developer program, standing up a Google Cloud project, registering an OAuth client, creating a second project in a separate Device Access Console, and linking the two so a homeowner's consent can be exchanged for tokens scoped to their devices.</p>
+
+  <p>So this stopped being a device-pairing exercise almost immediately. It became an identity and integration problem, and the interesting part is a structural conflict that sits at the centre of it.</p>
+
+  <h2>The conflict</h2>
+
+  <p>Home Assistant — the control plane I wanted the thermostat to appear in — runs on a machine at a private address behind a residential router. Google's identity platform will not accept a callback it cannot publicly resolve and verify over TLS. The relying party and the identity provider therefore sit on opposite sides of a boundary that OAuth expects to be continuous.</p>
+
+  <blockquote>How do you complete a standards-compliant authorization code flow, and then sustain a real-time event stream, between a public identity provider and a private, non-routable service — without exposing that service to the internet?</blockquote>
+
+  <p>Reconciling that gap, rather than any device configuration, is the substance of the work. And it is not a hobbyist problem. It is a faithful model of something that recurs constantly in enterprise cloud work: a third-party platform holds the data, a private internal system needs it, and the two must be joined through federated identity and asynchronous messaging without opening the network perimeter.</p>
+
+  <figure>
+    <img src="images/nest-01-architecture.jpg" alt="Architecture diagram: Nest thermostat and SDM backend inside a Google-managed boundary, with the SDM REST API and Cloud Pub/Sub crossing to a private Home Assistant control plane">
+    <figcaption>Everything above the dashed line is Google-operated. Everything below the amber box runs on hardware I own. Two arrows cross between them, and one OAuth grant authenticates both.</figcaption>
+  </figure>
+
+  <h2>Four links, three consoles, no mutual validation</h2>
+
+  <p>Authorization here is not a single grant. It is a chain of four links, and this is what makes the class of integration hard to debug: a break in any link surfaces somewhere else entirely.</p>
+
+  <ul>
+    <li><strong>Cloud project &rarr; SDM API.</strong> Enabling the service on a billing-enabled project. Without it, tokens are valid and every API call fails</li>
+    <li><strong>Cloud project &rarr; OAuth client.</strong> A web-application client with an exactly matching redirect URI, under an external, in-production consent audience</li>
+    <li><strong>Device Access project &rarr; OAuth client.</strong> Registering the client ID so Google knows which application may request device scopes</li>
+    <li><strong>Homeowner &rarr; application.</strong> An interactive consent grant, recorded as a partner connection against the home, exchanged for a refresh token</li>
+  </ul>
+
+  <p>The first three are configured in three different consoles, and none of them validates the others. A missing API enablement, a mismatched redirect URI and an unregistered client ID produce different symptoms at different stages — one at request time, one at callback, one at token exchange. That is the whole difficulty in one sentence.</p>
+
+  <h3>Three identities that are easy to conflate</h3>
+
+  <p>A related trap: three distinct identities are involved, living in two consoles, each with its own lifecycle. The Cloud project answers <em>which services may be called at all</em>. The OAuth client answers <em>which application is asking, and where may the answer be sent</em>. The Device Access project answers <em>which devices may this application see</em>. Conflating them is the most common cause of an integration that authenticates perfectly and then returns no devices.</p>
+
+  <p>The separation is deliberate. Cloud resource management and device authorization have different blast radii, so keeping them apart means a change to one cannot silently widen the other — and the Device Access project can be revoked outright, severing all device visibility, without touching billing or anything else.</p>
+
+  <figure>
+    <img src="images/nest-04-device-access.jpg" alt="The Device Access Console showing the bound OAuth client, the required SDM scope, sandbox user limits and available device traits">
+    <figcaption>Trust chain link 3. The bound client ID is what permits the application to request device scopes; changing it deauthorizes every existing token.</figcaption>
+  </figure>
+
+  <h2>Least privilege in three dimensions</h2>
+
+  <p>The integration requests a deliberately narrow permission set. The primary scope authorizes interaction with enrolled Nest devices and nothing else — no mail, files, contacts, location history or profile data — and it cannot be widened afterwards without a fresh consent prompt the homeowner would see.</p>
+
+  <p>Underneath the scope sits a second restriction. The Device Access project enumerates the trait categories it exposes: structure, room, thermostat, camera, doorbell and display. Even with a valid token, the application can only reach categories the project surfaces, and only for devices attached during consent. Scope and trait enumeration are independent controls, and both must permit an operation for it to succeed.</p>
+
+  <p>The resulting grant is narrow in three dimensions at once: by scope, by project, and by trait. Revoking any one of the three cuts access without touching the others.</p>
+
+  <h3>One setting that decides whether it still works next month</h3>
+
+  <p>The OAuth application was promoted from testing to in-production publishing status. That looks cosmetic and is not. An external application left in testing issues refresh tokens that expire after seven days. For an interactive app that is an annoyance; for an unattended integration it is fatal, because the thermostat silently disconnects roughly weekly and needs manual re-authorization every time.</p>
+
+  <p>The application stays unverified, which is correct here. Verification is Google's review process for applications requesting sensitive scopes from the general public. This one has an audience of exactly one, so it sits far under the hundred-user cap for unverified external applications, and the only consequence is an interstitial during the one-time consent flow.</p>
+
+  <h2>The failure that didn't error</h2>
+
+  <p>The first authorization attempt failed in the most instructive way possible: nothing went wrong. The consent screen appeared, the grant was accepted, the browser redirected — and Home Assistant never received a token. No error banner, no log line pointing at a cause, nothing on Google's side indicating a problem.</p>
+
+  <p>That silence is itself diagnostic, because it eliminates most of the search space immediately. Invalid client credentials? Ruled out — Google will not render consent for an unrecognized client. Insufficient scope? Ruled out — the consent screen listed the permission and the grant was accepted. API not enabled? Ruled out — those failures happen at call time, after tokens exist, and no token was ever issued. Device not enrolled? Ruled out — that presents as an empty device list after a successful authorization, not as a missing token.</p>
+
+  <blockquote>Everything before the redirect demonstrably worked and everything after it demonstrably did not, so the fault is at the handoff.</blockquote>
+
+  <p>That leaves exactly one failure mode: a redirect-boundary mismatch. It is the only one that completes successfully on the identity provider's side and produces nothing at all on the relying party's side. Google validates the callback strictly and considers its obligation discharged once it redirects the browser to the registered URI. Whether anything is listening at the other end is not Google's concern, and not something it can report on.</p>
+
+  <p>The reasoning there is structural rather than empirical, and that is the part I'd carry into any OAuth integration. I did not find this by changing settings until something worked. I found it by asking which single fault could produce success on one side and silence on the other.</p>
+
+  <h3>Resolving it</h3>
+
+  <p>There are exactly two ways to reconcile a public identity provider with a private relying party, and the trade-off is real.</p>
+
+  <p>A <strong>public redirect bridge</strong> is a stable, publicly resolvable TLS endpoint that satisfies Google's validation rules and then hands the authorization response back to whichever local instance the browser is configured for. It requires no inbound exposure, but it routes the callback through a third-party endpoint. A <strong>direct callback</strong> keeps everything inside infrastructure you control, but needs a public hostname with valid TLS — a reverse proxy, certificate management and an inbound firewall rule.</p>
+
+  <p>I chose the bridge, because avoiding inbound exposure was a stated objective. The critical detail, and the one that caused the failure, is that the bridge only works if the local instance address it forwards to matches the address actually used during setup. When it doesn't, Google completes the authorization, the browser lands on the bridge, and the handoff silently fails.</p>
+
+  <p>I'd rather state the caveat than bury it: the bridge is a third party in a security-sensitive step. It is operated by the Home Assistant project, widely used, and forwards in the browser rather than server-side, but an operator who already has a public hostname and TLS should prefer the direct callback.</p>
+
+  <figure>
+    <img src="images/nest-05-audience-after.jpg" alt="The OAuth consent audience page showing in-production publishing status and one user against a hundred-user cap">
+    <figcaption>Server-side proof the corrected flow completes: the user counter, which read zero before any grant existed, now reads one. Recorded by Google rather than claimed by me.</figcaption>
+  </figure>
+
+  <h2>Events, not polling</h2>
+
+  <p>With identity working, the second design decision was how device state reaches the local machine. A scheduled fetch would have been simpler to build. Instead, a Cloud Pub/Sub topic and subscription carry device change events as they happen, which is what makes Home Assistant classify the integration as Cloud Push rather than Cloud Polling.</p>
+
+  <p>The practical consequence is that adjusting the thermostat physically at the wall shows up on the dashboard within seconds, and it costs zero requests to keep it that way while nothing is changing. Messages also buffer: if the local machine restarts or the network drops, events accumulate in the subscription and arrive on reconnection instead of being lost.</p>
+
+  <figure>
+    <img src="images/nest-08-api-traffic.jpg" alt="Project dashboard showing a sustained request rate around 0.013 requests per second with no errors reported">
+    <figcaption>Roughly 0.013 requests per second. The sawtooth is housekeeping — token refresh, lease renewal, reconciliation — not device polling, which would be a flat line at a fixed interval.</figcaption>
+  </figure>
+
+  <p>That request profile is also the cost argument. The event-driven design is not only cleaner than polling, it is what keeps the bill at zero: a polling integration consumes its full request budget whether or not the thermostat is doing anything, while this one transmits only on change. Real-time responsiveness and near-zero cost turned out to be the same decision.</p>
+
+  <p>Worth noting what the architecture doesn't contain. There is no compute — no VM, no container, no serverless function. No database, no reverse proxy, no tunnel, no inbound firewall rule. The whole thing is assembled from managed identity and messaging primitives plus one piece of local software. Every component removed is a component that cannot fail, cost money or need patching.</p>
+
+  <figure>
+    <img src="images/nest-10-thermostat.jpg" alt="The Nest thermostat rendered in Home Assistant as a climate card with temperature and humidity sensors">
+    <figcaption>The end of the chain. A 69&deg;F target against 72&deg;F ambient with the system idle — internally consistent, since a heating setpoint below ambient is exactly when it should not call for heat.</figcaption>
+  </figure>
+
+  <h2>The failures that arrive in six months</h2>
+
+  <p>The failures that matter most in an unattended system are the ones that appear long after the build, when the original context is forgotten. Three apply here, and all three come from dormancy.</p>
+
+  <p>Pub/Sub subscriptions are subject to deletion after a period of inactivity, so the integration can fail to start because it looks for a subscription that no longer exists. Google revokes authorization if a refresh token goes unused for about six months — and an integration that lives on pushed events while rarely calling the API can go stale while appearing perfectly healthy, with events arriving right up until the grant lapses. Inactive OAuth clients are likewise subject to deletion.</p>
+
+  <p>None of these produces a warning. None is visible on a dashboard that shows the system working today. Writing them down at build time, while the reasoning is fresh, is the difference between a system that was made to work and one designed to keep working.</p>
+
+  <p>In the same spirit, I'd name an operational gap rather than gloss it: the project is well instrumented but not alerted. Every signal needed to detect failure is being collected and none of it currently pages anyone. For a residential thermostat that is a defensible position. The distinction between <em>observable</em> and <em>monitored</em> matters far more in production, which is exactly why it is worth saying out loud.</p>
+
+  <h2>What the thermostat was actually for</h2>
+
+  <p>The delivered system produces something more useful than a controllable thermostat: a normalized, event-driven, authenticated representation of a physical environment, running on hardware I control. That is the substrate an autonomous agent needs, and the next phase puts one above it.</p>
+
+  <p>The most important decision in that phase is what the agent is <em>not</em> given. No cloud credentials, no OAuth tokens, no client secrets, no direct API access. It consumes normalized state from the local control plane and issues intent-based actions that the control plane executes through the existing authenticated pipeline.</p>
+
+  <p>The tempting shortcut is to hand the agent API access directly; it is fewer moving parts and feels more capable. It is also worse on every axis that matters — duplicated credential storage, a bypassed audit trail, coupling to a vendor-specific schema, and a widened blast radius around the least predictable component in the system. Constraining the agent costs nothing in capability and leaves the security model intact.</p>
+
+  <blockquote>Guardrails the agent enforces on itself fail precisely when the agent misbehaves, which is the condition they exist to handle.</blockquote>
+
+  <p>So setpoint bounds, rate limits, confirmation for high-impact actions and manual-override precedence all belong in the control plane, below the agent, checked at the point of execution. That is the difference between a safety control and a stated intention.</p>
+
+  <hr>
+
+  <p class="mono stackline">Google Cloud &middot; Smart Device Management API &middot; OAuth 2.0 &middot; Cloud Pub/Sub &middot; Cloud Monitoring &amp; Logging &middot; Home Assistant</p>
+
+  <p><a href="google-nest-oauth-integration.html">Read the full engineering dossier &rarr;</a></p>
+
+  <p class="note">The full technical report, with nine captioned captures and a complete failure taxonomy, is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

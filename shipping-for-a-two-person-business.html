@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping for a two-person business: a bilingual Azure platform at $1.70 a month</title>
+<meta name="description" content="Designing, building and supporting a bilingual booking, payments and operations platform on Azure for a family-run cleaning company — offline-first dashboards, server-authoritative payments, and the outage that never reached customers.">
+<meta property="og:title" content="Shipping for a two-person business: a bilingual Azure platform at $1.70 a month">
+<meta property="og:description" content="Seven Azure services, fourteen releases and 130+ automated checks for a client whose budget could not carry a software bill.">
+<meta property="og:image" content="images/mm-01-home-en.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Client engagement &middot; Azure</div>
+  <h1>Shipping for a two-person business: a bilingual Azure platform at $1.70 a month</h1>
+  <p class="standfirst">A cleaning company ran on phone calls, text threads and a paper calendar. The replacement had to work one-handed, on a weak signal, in two languages, for a budget that could not carry a software bill.</p>
+  <div class="byline">October 2026 &middot; 12 min read</div>
+
+  <p>Menifee Maids is a family-owned residential, commercial and post-construction cleaning company serving fifteen cities in Western Riverside County. The owner works on job sites most of the day, often with a weak phone signal, and a part-time helper assists. Before this engagement, requests came in by phone and text, availability lived on paper, and there was no reliable record of which jobs had been paid.</p>
+
+  <p>I designed, built, deployed and supported the platform that replaced all of that. It is live at <a href="https://www.menifeemaids.com" target="_blank" rel="noopener">menifeemaids.com</a>. The engineering interest here is not any single service — it is what a hard constraint does to a design.</p>
+
+  <h2>The constraints were the brief</h2>
+
+  <p>Five problems came out of the first conversations. Lost and double-booked requests, because there was no single source of truth. A language gap, since much of the service area is Spanish-speaking while competitors' sites are English-only. Slow payment collection, with invoices sent by hand and no card payments. A phone-first reality, where any tool had to work between jobs on a poor connection. And a tight budget: a two-person business cannot carry a meaningful monthly software bill.</p>
+
+  <p>That last one is the constraint that shaped the architecture. "Near-zero fixed cost" is not a nice-to-have you bolt on at the end; it eliminates whole categories of design before you start.</p>
+
+  <blockquote>Make running cost scale with usage rather than sit as a fixed bill, and the rest of the architecture follows.</blockquote>
+
+  <figure>
+    <img src="images/mm-01-home-en.jpg" alt="The Menifee Maids homepage in English showing services, service area and a booking call to action">
+    <figcaption>The public site. Every customer-facing page exists in parallel in English and Spanish, with a language switch on each one.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/mm-02-home-es.jpg" alt="The same homepage in Spanish">
+    <figcaption>Not a machine translation pass: around 380 interface strings, in vocabulary that suits the local Spanish-speaking community.</figcaption>
+  </figure>
+
+  <h2>Seven services, one front door</h2>
+
+  <p>Customers and staff only ever talk to one thing: an Azure Static Web App and its built-in API. Data, files, email and payments sit behind it, and a separate Function App runs scheduled and background work.</p>
+
+  <p>The whole site and its thirteen-endpoint API deploy together on the Static Web Apps free tier, which also provides TLS, a custom domain, Microsoft sign-in and route-level role rules at no cost. Cosmos DB holds jobs, payments, availability, settings and customers on the free tier with capped throughput. Blob storage keeps job photos and archives, a storage queue backs up the booking path, and Azure Communication Services sends email from the client's own domain.</p>
+
+  <p>I kept Cosmos DB on manually provisioned throughput rather than autoscale, specifically because autoscale can climb past the free allowance. That is the kind of decision that only looks important on the invoice.</p>
+
+  <h3>What the free tier costs you</h3>
+
+  <p>Managed functions inside Static Web Apps are HTTP-only and have no managed identity. That has two consequences I had to design around: the website's API holds its keys in environment variables rather than using identity-based access, and anything on a timer or a queue trigger needs a separate Function App. So background work runs on its own Linux Consumption app, whose system-assigned identity holds the Cosmos DB and storage roles — no secrets on that app at all.</p>
+
+  <h2>Offline-first, because the office is a job site</h2>
+
+  <p>The staff dashboards are installable on a phone's home screen and expected to work on a bad connection. They read and write a local working copy; a sync engine pulls every 45 seconds and pushes about 1.5 seconds after a change, merging against a last-agreed snapshot.</p>
+
+  <p>Three-way merge is the part worth dwelling on. Comparing local, cloud and last-agreed lets conflicts resolve deterministically: a local edit pushes, a remote edit is taken, and when both changed the newest wins. A device never pushes before its first successful pull, so a stale copy can't overwrite newer data. And if more than three records vanish at once, the engine restores rather than deletes — a guard against a sync bug quietly emptying the business's job history.</p>
+
+  <figure>
+    <img src="images/mm-04-requests.jpg" alt="The staff request inbox showing booking cards with first and backup choices and accept, reschedule, cancel and delete actions">
+    <figcaption>The request inbox. Each booking carries a first choice and a backup, so the common case resolves in one tap. Customer details shown here are demonstration data.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/mm-06-payments.jpg" alt="The job database view with outstanding and collected totals, filters and per-job payment status">
+    <figcaption>The job database, with totals, filters and PDF or CSV export — the record of what was paid that the business previously did not have.</figcaption>
+  </figure>
+
+  <h2>The browser never decides the amount</h2>
+
+  <p>The first payments design was a single static payment link. It cannot charge different customers different amounts, and its parameters can be edited by anyone who can read a URL.</p>
+
+  <p>What shipped instead creates a Stripe Checkout Session on the server, from the amount stored in the database, and reconciles through a signature-verified webhook. Prices cannot be changed by editing a link, payments mark themselves paid without manual entry, and card data stays with Stripe so PCI scope stays minimal. The live key is a restricted one with exactly two permissions: write Checkout Sessions, read Payment Intents.</p>
+
+  <figure>
+    <img src="images/mm-07-pay-invoice.jpg" alt="The customer-facing pay page showing service, job number, amount due and a pay button">
+    <figcaption>The customer's view of an invoice. The amount comes from the database, not from the link.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/mm-08-payment-received.jpg" alt="The payment confirmation page">
+    <figcaption>Verified end to end in live mode with a real transaction, then reconciled automatically by the webhook.</figcaption>
+  </figure>
+
+  <h2>The outage customers never saw</h2>
+
+  <p>The hardest problem of the engagement was a production component that never started. The background Function App returned 503 on both the app and its deployment endpoint, the portal showed a runtime version of "Error", and the functions list would not load.</p>
+
+  <figure>
+    <img src="images/mm-09-zero-workers.jpg" alt="Azure diagnostics reporting that the host runtime instance was unavailable and the function app was running on zero worker instances">
+    <figcaption>The diagnostic that named it: the app was running on zero worker instances, so no code could execute.</figcaption>
+  </figure>
+
+  <p>The investigation went layer by layer. Publishing from the workstation failed first on the wrong account and tenant, then on a missing worker runtime — both fixed, neither the cause. A package would upload but trigger syncing failed. A GitHub Actions workflow couldn't fetch app settings because the site was unavailable. Configuration review ruled out publishing restrictions and network access. An attempt to switch runtime from PowerShell silently did nothing, because the pipe character in the version string was read as a shell pipe. Rebuilding the app from scratch reproduced the identical fault, which proved it wasn't a corrupted app.</p>
+
+  <p>The root cause, confirmed with Microsoft Support: the app had been created on Node.js 24, which the Azure CLI recommended after refusing Node 20 as end-of-life. The Linux Consumption plan did not support Node.js 24, so no worker could start. Switching to Node 22 made the runtime healthy immediately. One follow-on fault remained — a deploy failing with 401 because the publish profile had gone stale — and replacing that secret produced a green deploy.</p>
+
+  <figure>
+    <img src="images/mm-10-deploy-401.jpg" alt="A GitHub Actions run failing at the deploy step with repeated 401 unauthorized errors fetching app settings">
+    <figcaption>The last layer: a stale deployment credential, which looks nothing like the runtime fault underneath it.</figcaption>
+  </figure>
+
+  <p>The reason this incident cost the business nothing is a decision made while it was still unresolved. The original design queued every booking for the Function App to write, so when that app couldn't start, bookings sat in the queue. I moved the customer path off it entirely: bookings now write directly from the API to Cosmos DB, and the queue is used only when that write fails. The fallback writer is create-only, so a delayed copy can never overwrite an edit staff have made since.</p>
+
+  <blockquote>Anything customers depend on shouldn't hinge on a background component.</blockquote>
+
+  <p>Customers kept booking throughout. The visible consequence was that reminders and archiving didn't run — which mattered, because archiving is what preserves records before an automatic ninety-day deletion removes them. That raised the priority considerably.</p>
+
+  <h2>Testing against the real code</h2>
+
+  <p>Every release was tested before the client saw it, and not against mocks of my own API. A local harness runs the actual Azure Functions handlers behind a small HTTP server, with in-memory stand-ins for the database, storage, the queue, email and Stripe, and it simulates the platform's sign-in so tests can act as an owner, a helper or an anonymous customer. A headless browser then drives the real pages at desktop and phone sizes, with simulated clocks and time zones where it matters.</p>
+
+  <p>That adds up to more than 130 automated checks across eleven suites, rerun on every release from v4 through v14: cross-device sync, notifications in both languages, live-mode payments with tampered links and forged webhooks rejected, photo attachments and HMAC-protected links, QR hand-off decoded to confirm the exact number and message, and a layout sweep of thirteen pages at seven widths.</p>
+
+  <p>One habit from that work is worth naming. When a check failed because of the test itself — a case-sensitive match against a capitalized label, a size threshold too strict for synthetic images — I fixed the test and said so, rather than weakening the product to make the suite green.</p>
+
+  <h2>Smaller bugs, same loop</h2>
+
+  <p>A dozen smaller issues followed one pattern: reproduce, hypothesize, change one variable, fix the cause rather than the symptom, then add a check so it can't return silently. A few earned their place in the report:</p>
+
+  <ul>
+    <li><strong>Bookings never reached the database.</strong> The page and dashboard shared one browser's storage, so a "successful" booking existed only on that device. Fixed by server-side writes and the sync engine</li>
+    <li><strong>Past time slots were offered.</strong> The code checked the date but not the time of day, and used the visitor's time zone. Fixed with Pacific-time filtering, a one-hour lead and enforcement in the API as well as the page</li>
+    <li><strong>Photos went missing from texts and emails.</strong> Browsers can't attach files to another app, so the platform sends the email itself with attachments, and texts carry a private link whose key is an HMAC of the job number</li>
+    <li><strong>Customers were emailed before review.</strong> The client wanted control of the wording, so every message is now pre-written in the customer's language and shown for approval; nothing sends until someone presses Send</li>
+  </ul>
+
+  <p>That last one cost a tap per message and was accepted deliberately. It is a reminder that the right answer sometimes makes the software slightly less automatic.</p>
+
+  <h2>What it costs</h2>
+
+  <p>The projected running cost is about $1.70 a month at roughly 200 jobs: Static Web Apps, Cosmos DB and Functions at zero on free tiers, around fifteen cents of blob storage, a cent of queue, about thirty cents of email, and an amortized domain. Adding a company texting number would take it to about $10.50, plus a one-time carrier registration fee. A budget alert guards against surprises.</p>
+
+  <p>The client also got an exit path that doesn't depend on me. Each release is a versioned package with a file list, a cache-version bump and a PowerShell script that refuses to run against a repository with uncommitted changes, copies the files, stops on untracked files, then commits and pushes. GitHub Actions deploys, and the client confirms the green check and runs the post-release checks.</p>
+
+  <h2>What I'd carry forward</h2>
+
+  <p>Check the support matrix, not just the tool's advice — one unsupported runtime version stopped every background job. Keep the critical path short. Verify where data lands rather than what the screen says, because a local-only dashboard looked like it worked. Test assumptions about external systems; one test email exposed a closed mailbox. And document as you go: the screenshot log made the support case, the client runbooks and the report itself possible.</p>
+
+  <p>Two items stay open and belong in the open, not in a footnote: keys and the deployment credential that were visible during setup need rotating, and the sample testimonials on the site need replacing with genuine reviews before anyone promotes them.</p>
+
+  <hr>
+
+  <p class="mono stackline">Azure Static Web Apps &middot; Azure Functions &middot; Cosmos DB &middot; Blob &amp; Queue Storage &middot; Communication Services &middot; Stripe &middot; GitHub Actions &middot; Node.js</p>
+
+  <p><a href="menifee-maids-platform.html">Read the full engineering dossier &rarr;</a></p>
+
+  <p class="note">Published with the client's work shown as delivered; demonstration data is used in every screenshot of customer records. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -13,6 +13,12 @@ articles.js                     THE ARTICLE LIST + THE PROJECT LIST — the only
 demo.mp4                        10-min walkthrough embedded in the dossier (8.5 MB)
 access-that-follows-people.html blog post — Employee Identity Lifecycle Automation
 honest-contact-form.html        blog post — Serverless Contact Form (Amazon SES)
+shipping-for-a-two-person-business.html
+                                blog post — Menifee Maids platform (Azure, client work)
+read-the-response-not-the-tutorial.html
+                                blog post — Headless CMS storefront (Strapi 5)
+one-feature-every-layer.html    blog post — Book Review Platform
+oauth-across-a-boundary.html    blog post — Google Cloud OAuth & Nest integration
 autonomous-cybersecurity-agents.html  blog post — multi-agent SOC analyst (watsonx)
 identity-gated-scheduling.html  blog post — Recruiter Verification Gateway
 deterministic-by-design.html    blog post — Fridge2Meal recipe engine
@@ -24,6 +30,11 @@ cybersecurity-multi-agent-system.html
 serverless-contact-form.html    engineering dossier — Serverless Contact Form
 employee-identity-lifecycle.html
                                 engineering dossier — Employee Identity Lifecycle Automation
+menifee-maids-platform.html     engineering dossier — Menifee Maids platform
+headless-cms-shopping-cart.html engineering dossier — Headless CMS Storefront
+book-review-platform.html       engineering dossier — Book Review Platform
+google-nest-oauth-integration.html
+                                engineering dossier — Google Cloud OAuth & Nest
 style.css                       shared styles for every page
 images/                         screenshots used by the blog posts
 README.md                       this file (safe to delete before uploading)
@@ -486,19 +497,39 @@ Two width tokens sit alongside the colors:
 They are deliberately separate: widening the page should not widen the text
 column past the point where it becomes tiring to read.
 
-The five dossiers are deliberately self-contained — each carries its own styles
+The nine dossiers are deliberately self-contained — each carries its own styles
 so it can be sent or printed on its own. None uses `style.css`, so restyle
 them separately if you change the palette. Each uses a different accent colour so
 they read as siblings rather than duplicates: green for Fridge2Meal, violet
 for the verification gateway, blue for the multi-agent system, teal for the
-contact form, and plum for the identity lifecycle engine.
+contact form, plum for the identity lifecycle engine, amber for the Nest
+integration, azure for Menifee Maids, forest green for the book review and
+magenta for the headless CMS storefront.
 
-`fridge2meal.html` carries its images embedded in the file itself; the other four
+`fridge2meal.html` carries its images embedded in the file itself; the other eight
 link to the `images/` folder like the blog posts do, so keep that folder
-alongside them. Images for the two newest projects are prefixed `cf-` (contact
-form) and `eil-` (employee identity lifecycle).
+alongside them. Images are prefixed per project: `cf-` (contact form), `eil-` (employee
+identity lifecycle), `nest-` (Google Cloud OAuth & Nest), `mm-` (Menifee
+Maids), `br-` (book review) and `sc-` (headless CMS storefront).
 
 The header navigation now has six items. Its spacing in `style.css`
 (`.site-head nav`, a 16px gap) is tuned so the name and all six tabs stay on
 one line at the 880px `--shell`. If you add a seventh tab or widen the name,
 either reduce that gap slightly or raise `--shell`.
+
+
+## A note on the screenshots
+
+Every image on this site was cropped from the project reports before publishing,
+and a few were cropped deliberately rather than for layout:
+
+- The Home Assistant dashboard capture shows live camera views of the house.
+  Only the thermostat card and its two sensors are published.
+- The Nest partner-connections capture shows the home's structure name, which is
+  cropped out.
+- Menifee Maids captures containing scannable QR codes are excluded entirely,
+  because the codes encode a phone number and message.
+- Customer records in the Menifee Maids screenshots are demonstration data.
+
+If you add images from a new report, it is worth checking the full-size capture
+for the same classes of detail before cropping.

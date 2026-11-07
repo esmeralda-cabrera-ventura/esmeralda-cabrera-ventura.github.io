@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One feature, every layer: finishing a review endpoint from Express to React</title>
+<meta name="description" content="Completing a feature across a three-tier JavaScript app — an atomic MongoDB update behind an Express route, an immutable React state update, and a startup bug that only appeared on Windows.">
+<meta property="og:title" content="One feature, every layer: finishing a review endpoint from Express to React">
+<meta property="og:description" content="A 501 placeholder turned into a working review feature, with the shell difference that kept the server from starting at all.">
+<meta property="og:image" content="images/br-01-three-tier.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Full-stack &middot; JavaScript</div>
+  <h1>One feature, every layer: finishing a review endpoint from Express to React</h1>
+  <p class="standfirst">Browsing worked. Posting a review returned 501 and the form showed placeholder text. Finishing that one feature meant touching the database, the API and the UI — and fixing a bug that stopped the server from starting at all.</p>
+  <div class="byline">October 2026 &middot; 7 min read</div>
+
+  <p>The Book Review Platform lets readers browse a catalog of books, open a book's details and leave a review. In the version I started from, two of those three worked. The API route for posting a review returned <span class="m">501 Not Implemented</span>, and the React form showed a note telling the developer to implement it.</p>
+
+  <p>Small features that cross every layer are useful precisely because nothing can be faked. The route has to find the right document, the update has to be correct under concurrency, the response has to be honest about what happened, and the UI has to reflect it without a page reload.</p>
+
+  <figure>
+    <img src="images/br-01-three-tier.jpg" alt="Three-tier diagram: React frontend on port 3000, Express API on 4000, MongoDB on 27017">
+    <figcaption>A classic three-tier split. The frontend never touches the database; the API owns all database access through the official driver.</figcaption>
+  </figure>
+
+  <h2>Finding the right book</h2>
+
+  <p>The first decision is the one that silently breaks everything if you get it wrong. The book ID arrives in the URL as a string, but MongoDB stores <span class="m">_id</span> as an ObjectId. Wrapping the parameter in <span class="m">new ObjectId()</span> makes the types match. Skip it and every lookup fails without erroring — the query is valid, it just never matches anything.</p>
+
+  <h3>Appending without a read-modify-write race</h3>
+
+  <p>The obvious way to add a review is to read the book, push onto the array in JavaScript, and write the document back. That is also the way to lose reviews: two submissions arriving close together each read the same array, and the second write overwrites the first.</p>
+
+  <p>So the update uses <span class="m">$push</span>, which appends to the array in a single atomic operation on the server. No read, no window, no lost review. It is one line of difference and it removes an entire class of bug.</p>
+
+  <h3>Reporting what actually happened</h3>
+
+  <p>The route then has to decide what to tell the client, and the question it needs to answer is "does this book exist?" The update result carries <span class="m">matchedCount</span>, which answers exactly that — and it is the right field rather than a modified count, because any match is always modified by a push. Zero matches means no book has that ID, so the API returns 404. Otherwise it returns 201.</p>
+
+  <p>One detail with teeth: the route closes its database connection immediately after responding, so the update has to be awaited. Without the await, the connection can close while the write is still in flight.</p>
+
+  <figure>
+    <img src="images/br-05-sequence.jpg" alt="Sequence diagram tracing a review from the reader's click through the React component, the Express route and MongoDB, and back">
+    <figcaption>One review's full round trip. Steps three through seven are the code I added.</figcaption>
+  </figure>
+
+  <h2>Updating the screen without asking the server again</h2>
+
+  <p>On the frontend, the handler blocks the browser's default form submission, rejects empty input before making any network call, and posts the review to the endpoint for the selected book. The interesting part is what happens after the server confirms.</p>
+
+  <p>Rather than refetching the whole book, it appends the review to component state and clears the input. That saves a round trip, but it only works if the update is immutable: a new object and a new array, rather than pushing onto the existing one. React detects the change by reference, so mutating the array in place would leave the screen stale even though the data had changed.</p>
+
+  <p>Every failure is caught and reported to the user instead of breaking the page, and the status message under the form tells them plainly which happened.</p>
+
+  <h2>The bug that stopped the server starting</h2>
+
+  <p>None of that could be tested at first, because <span class="m">npm start</span> crashed immediately in the backend with an error saying Node couldn't find a module named <span class="m">seed.js;</span> — semicolon included. With no API running, the frontend loaded and showed an empty book list.</p>
+
+  <p>The start script was <span class="m">node seed.js; nodemon index.js</span>. On macOS and Linux, npm runs scripts through a POSIX shell, where the semicolon separates two commands. On Windows, npm uses <span class="m">cmd.exe</span>, which doesn't treat it that way, so Node received <span class="m">seed.js;</span> as the filename.</p>
+
+  <blockquote>The semicolon in that error message is the whole diagnosis. It is not a missing file; it is a file whose name includes punctuation that was supposed to be a separator.</blockquote>
+
+  <p>The fix is to use <span class="m">&amp;&amp;</span>, which works in every shell. It also adds a safety property worth more than the portability: nodemon now starts only if seeding succeeded, so the API never runs against a database that failed to initialize.</p>
+
+  <figure>
+    <img src="images/br-03-server-start.jpg" alt="PowerShell showing npm run start connecting to MongoDB, skipping seeding and starting nodemon on port 4000">
+    <figcaption>After the fix: connected to MongoDB, seeding skipped because the data already exists, and the API listening on port 4000.</figcaption>
+  </figure>
+
+  <h2>Testing the paths that aren't the happy one</h2>
+
+  <p>Five scenarios, not one. A syntax check on the route file. A valid review, confirming a 201 and the review stored in the book's array. A request against an unknown ID, confirming 404 rather than a silent success. A submission with no review content, confirming the existing 400 validation still held after my changes. And the end-to-end path in the browser.</p>
+
+  <p>The third and fourth are the ones that matter. It is easy to write a route that works for well-formed input and returns something misleading for everything else, and a 404 that quietly returns 201 is exactly the kind of defect that surfaces months later as "some reviews just don't save."</p>
+
+  <figure>
+    <img src="images/br-02-finished-feature.jpg" alt="The running app showing a book's reviews with a newly submitted review and a success message">
+    <figcaption>The finished feature: a review submitted through the form appears in the list immediately, with a confirmation under it.</figcaption>
+  </figure>
+
+  <h2>What I'd improve next</h2>
+
+  <p>Three things stand out, and the first is a real gap rather than a polish item. A malformed ID makes <span class="m">new ObjectId()</span> throw, which surfaces to the user as a 500 — so validating the ID and returning a helpful 400 is the first change I'd make. Second, every request currently opens and closes its own MongoDB client; connecting once at startup and sharing the pooled client would cut latency, and closing in a <span class="m">finally</span> block would prevent leaks when an error is thrown. Third, reviews are stored as bare strings, so storing them as objects with text, rating, author and timestamp — and returning the created review from the 201 — would make the API considerably more useful.</p>
+
+  <p>Beyond that: move the database URL and API base URL into environment variables instead of hard-coding localhost, and add API tests for the 201, 400 and 404 paths plus a form test, run in CI.</p>
+
+  <hr>
+
+  <p class="mono stackline">Node.js &middot; Express &middot; MongoDB &middot; React 18 &middot; axios &middot; REST &middot; nodemon &middot; Webpack 5</p>
+
+  <p><a href="book-review-platform.html">Read the full engineering dossier &rarr;</a></p>
+
+  <p class="note">The full technical report is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

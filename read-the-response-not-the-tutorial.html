@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read the response, not the tutorial: a React storefront on a headless CMS</title>
+<meta name="description" content="Modeling a product catalog in Strapi 5, testing and securing its endpoints in Postman, and connecting a React cart to the live API — including the breaking response-shape change the instructions didn't know about.">
+<meta property="og:title" content="Read the response, not the tutorial: a React storefront on a headless CMS">
+<meta property="og:description" content="Least-privilege roles, Bearer-token writes, and three moments where following the instructions literally would have produced broken code.">
+<meta property="og:image" content="images/sc-01-storefront.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&family=Newsreader:opsz,wght@6..72,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="name" href="index.html">Esmeralda C. Cabrera Ventura</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="articles.html">Articles</a>
+      <a href="dossiers.html">Dossiers</a>
+      <a href="projects.html">Project details</a>
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+
+  <div class="kicker">Headless CMS &middot; API integration</div>
+  <h1>Read the response, not the tutorial: a React storefront on a headless CMS</h1>
+  <p class="standfirst">Modeling a catalog in Strapi, proving its endpoints in Postman, and wiring a React cart to the live API — with three separate moments where doing what the instructions said would have produced broken code.</p>
+  <div class="byline">October 2026 &middot; 8 min read</div>
+
+  <p>This project builds the data layer and storefront of a small online shop. A headless CMS stores the product catalog and generates a REST API from the content model; a React cart consumes it. Because the backend is generated rather than hand-written, the engineering shifts to three things that matter more than they sound: how the data is modeled, who is allowed to change it, and whether the client actually matches what the API returns.</p>
+
+  <p>That last one is where most of the interest turned out to be.</p>
+
+  <figure>
+    <img src="images/sc-01-storefront.jpg" alt="The React storefront showing a product list with add-to-cart buttons, cart contents, checkout, and a restock field pointing at the local Strapi API">
+    <figcaption>The finished loop: a product created through an authenticated API request, stored by the CMS, and pulled into the storefront by the Restock field.</figcaption>
+  </figure>
+
+  <h2>Modeling the catalog</h2>
+
+  <p>The content model is four fields: name, country of origin, cost and units in stock. Cost and stock are integers rather than text, so the frontend can do arithmetic on them without parsing strings — a small decision that avoids a category of bug where "$3" and "3" are the same value to a human and different to a program.</p>
+
+  <p>A headless CMS exposes nothing publicly by default, which is the right default. For the public role I enabled only the two read operations, find and findOne. Anyone can browse the catalog; no unauthenticated caller can create, edit or delete a product. Writes need a credential, and that becomes the whole point of the next section.</p>
+
+  <h3>Two things the raw JSON told me that the admin UI didn't</h3>
+
+  <p>Looking at the actual API response rather than the content manager surfaced two issues immediately.</p>
+
+  <p>First, data quality: the JSON showed trailing spaces inside the product and country values. They are invisible in the admin interface and perfectly capable of breaking an exact-match search or filter later. I corrected them and republished.</p>
+
+  <p>Second, identifiers: the admin list showed one set of IDs while the API returned another. Strapi 5 stores a draft row and a published row per entry, and the API serves the published rows — so the numeric ID is not the stable handle across both. The document ID is. Reaching for the obvious-looking integer would have produced code that works until someone edits an entry.</p>
+
+  <figure>
+    <img src="images/sc-05-public-json.jpg" alt="The public products endpoint returning four products as JSON with pagination metadata">
+    <figcaption>The public endpoint. Reading this, rather than trusting the admin view, is what surfaced both problems.</figcaption>
+  </figure>
+
+  <h2>Reads are public, writes carry a token</h2>
+
+  <p>Before testing my own backend I spent a round on a public practice API, sending one read and one write and reading the status code, latency, size and body of each. The distinction that matters: a 200 means "here is what you asked for", while a 201 means the server accepted a payload and created a resource. The practice API confirmed creation in two ways at once — the status and a server-generated ID in the body — which is exactly the pattern to look for when verifying any write.</p>
+
+  <p>Applied to my own API, that became two requests. A public GET returned the full catalog with no credential. An authenticated POST, carrying a Bearer token in the Authorization header, created a new product and returned 201 with the stored record.</p>
+
+  <figure>
+    <img src="images/sc-12-bearer-post.jpg" alt="Postman showing an authenticated POST with a redacted Bearer token in the headers, returning 201 Created with the new product">
+    <figcaption>The write path. It succeeds only because the request carries a valid API token; the public role is read-only. The token value is redacted.</figcaption>
+  </figure>
+
+  <p>Tokens are credentials, so every capture of this was redacted before publication, and in a real deployment the token belongs in an environment variable rather than in source code or a shared collection. I also cross-checked the write three ways: the response timestamp matched the server's own request log entry, and the record appeared in the database. Postman, the log and the data all describing the same write is a stronger claim than any one of them alone.</p>
+
+  <h2>Three times the instructions were wrong</h2>
+
+  <p>This is the part I'd keep from the whole project. Three separate times, following the written guidance literally would have produced a broken result.</p>
+
+  <h3>A prompt that didn't exist in the tutorial</h3>
+
+  <p>The CLI asked about a cloud signup — a step the instructions didn't mention, because they were written for an older version. Nothing was broken; the tooling had simply moved on. I skipped it to keep the project local.</p>
+
+  <figure>
+    <img src="images/sc-02-strapi-cli.jpg" alt="The Strapi CLI prompting for a cloud login during project creation">
+    <figcaption>A step that isn't in the instructions. Recognizing that the tutorial is older than the tool is half of working with fast-moving frameworks.</figcaption>
+  </figure>
+
+  <h3>An AI assistant confidently pointing the wrong way</h3>
+
+  <p>My first write request to the practice API failed with <span class="m">getaddrinfo ENOENT</span>, and the tool's assistant suggested fixing the request body format. Reading the error itself told a different story: <span class="m">getaddrinfo</span> is the DNS lookup, so the request never left my machine and the JSON body could not be the problem.</p>
+
+  <blockquote>The suggestion was specific, plausible and wrong. The error message was right there and said something else.</blockquote>
+
+  <p>I declined the suggested fix, treated it as a transient network issue — consistent with timeouts I'd already hit during installation — and re-sent the unchanged request, which succeeded. Had I "fixed" the body, I'd have changed working code and still had a DNS problem.</p>
+
+  <h3>A breaking change the starter code didn't know about</h3>
+
+  <p>The biggest one. The starter comments said to read each product from an <span class="m">attributes</span> wrapper, which is the older response shape. Inspecting the real response showed that the current version returns fields at the top level instead. Mapping <span class="m">item.attributes.Name</span> against that would have produced a list of <span class="m">undefined</span> values — a UI full of blanks, with no error anywhere to explain it.</p>
+
+  <p>So the restock handler maps the top-level fields directly. It prevents the default form submission, awaits the request to whatever URL was typed into the field, maps each product into the four fields the UI needs, and hands the result to the state setter so React re-renders. The whole thing is wrapped in try/catch, so a bad URL or a stopped server logs an error instead of crashing the app.</p>
+
+  <figure>
+    <img src="images/sc-13-restock-code.jpg" alt="The completed Restock component in VS Code with no errors or warnings">
+    <figcaption>The restock handler, mapping the real response shape rather than the documented one.</figcaption>
+  </figure>
+
+  <h2>When the install failed</h2>
+
+  <p>One more debugging note, because the instinct it teaches is useful. The initial install ended with an error in the native driver behind the CMS's local database. The log was full of deprecation and cleanup warnings, all of them harmless, and the actual cause was two network timeouts: the prebuilt binary download, then the fallback that compiles from source.</p>
+
+  <figure>
+    <img src="images/sc-03-install-failure.jpg" alt="A long npm install log ending in a failure in the native SQLite driver">
+    <figcaption>Most of this log is noise. The useful line is a timeout, which means retry rather than reconfigure.</figcaption>
+  </figure>
+
+  <p>Because the project files had been created correctly, re-running the install inside the project directory completed it. A timeout is not a configuration error, and reading far enough into the log to tell them apart saved a rebuild.</p>
+
+  <h2>What's honestly incomplete</h2>
+
+  <p>The storefront works end to end, and several things about it are clearly unfinished. Product thumbnails show broken placeholders because the image files aren't present, and photos are chosen by position in the list, so they'd mismatch after a restock anyway — the fix is a media field on the content model so each product carries its own image. The cart counts quantities by name, so two products sharing a name would share a stock count; keying by document ID solves it.</p>
+
+  <p>More fundamentally, a CMS handles the catalog well and has no concept of a cart, an order or a payment. Making this real commerce means user accounts, an orders collection, stock decrement on purchase and a payment provider. API URLs are also hard-coded, dependency audits report vulnerabilities in the starter packages, and the test runner is configured but the new features aren't covered.</p>
+
+  <p>None of that undermines what the project demonstrates. It is worth writing down because a list of what a thing can't do yet is more useful to a reader than a claim that it's finished.</p>
+
+  <hr>
+
+  <p class="mono stackline">Strapi 5 &middot; React 18 &middot; REST &middot; Postman &middot; API tokens &middot; axios &middot; React-Bootstrap &middot; SQLite &middot; Node.js &middot; Webpack</p>
+
+  <p><a href="headless-cms-shopping-cart.html">Read the full engineering dossier &rarr;</a></p>
+
+  <p class="note">The full technical report is available on request. More of my work is at <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">esmeraldaspace.com</a>, and I am reachable on <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>.</p>
+
+</article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="mono">Built and hosted from a static repo</span>
+    <span>
+      <a href="articles.html">Articles</a> &nbsp;&middot;&nbsp;
+      <a href="dossiers.html">Dossiers</a> &nbsp;&middot;&nbsp;
+      <a href="projects.html">Project details</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener">Portfolio</a> &nbsp;&middot;&nbsp;
+      <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

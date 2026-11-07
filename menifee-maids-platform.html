@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menifee Maids Platform — Engineering Dossier</title>
+<meta name="description" content="A bilingual Azure booking, payments and operations platform for a two-person cleaning company: seven services, offline-first dashboards, server-authoritative payments and a production incident that never reached customers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,400..900;1,75..125,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10231C;
+  --ink-soft:#41544C;
+  --paper:#EDEFE9;
+  --card:#FBFCF8;
+  --rule:#C3C9BE;
+  --rule-soft:#DDE1D8;
+  --fresh:#9FBB16;
+  --azure:#1C5FA8;
+  --amber:#BE7C22;
+  --clay:#9E4430;
+  --steel:#5B7168;
+  --display:"Archivo",-apple-system,sans-serif;
+  --body:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --wrap:940px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:19px; line-height:1.62;
+  font-variation-settings:"opsz" 18;
+}
+.wrap{max-width:var(--wrap); margin:0 auto; padding:0 28px}
+
+/* ---------- utility type ---------- */
+.mono{font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase}
+.m{font-family:var(--mono); font-size:.84em; letter-spacing:0}
+.eyebrow{font-family:var(--mono); font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--steel)}
+h1,h2,h3,h4{font-family:var(--display); font-weight:800; line-height:1.05; margin:0}
+p{margin:0 0 1.05em}
+a{color:inherit}
+
+/* ---------- cover ---------- */
+.cover{padding:64px 0 40px; border-bottom:6px solid var(--ink)}
+.cover .stamp{
+  display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  border-top:2px solid var(--ink); border-bottom:1px solid var(--rule);
+  padding:10px 0; margin-bottom:46px;
+}
+.cover h1{
+  font-size:clamp(2.5rem,8.4vw,5.9rem);
+  font-variation-settings:"wdth" 108;
+  letter-spacing:-.035em; text-transform:uppercase;
+}
+.cover h1 .two{color:var(--azure)}
+.deck{
+  font-size:clamp(1.15rem,2.4vw,1.5rem); line-height:1.42; max-width:32ch;
+  margin:26px 0 0; color:var(--ink); font-variation-settings:"opsz" 36;
+}
+.byline{margin-top:44px; border-top:1px solid var(--rule); padding-top:16px;
+  display:grid; grid-template-columns:1fr 1fr; gap:22px}
+.byline .name{font-family:var(--display); font-weight:800; font-size:1.32rem; letter-spacing:-.01em}
+.byline .role{color:var(--ink-soft); font-size:.95rem; line-height:1.45; margin-top:4px}
+
+/* ---------- facts panel ---------- */
+.facts{
+  background:var(--card); border:2.5px solid var(--ink); margin:46px 0 0;
+  padding:0 20px 18px; font-family:var(--display);
+}
+.facts .fhead{font-size:2.1rem; font-weight:900; letter-spacing:-.03em;
+  text-transform:uppercase; padding:14px 0 6px; font-variation-settings:"wdth" 92}
+.facts .fsub{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--steel); padding-bottom:10px}
+.hr-fat{border:0; border-top:11px solid var(--ink); margin:0}
+.hr-mid{border:0; border-top:4px solid var(--ink); margin:0}
+.hr-thin{border:0; border-top:1px solid var(--rule); margin:0}
+.frow{display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:7px 0}
+.frow .lbl{font-weight:700; font-size:.94rem; letter-spacing:-.005em}
+.frow .lbl small{font-weight:400; font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.12em; color:var(--steel); display:block; margin-top:2px; text-transform:uppercase}
+.frow .val{font-family:var(--mono); font-size:.9rem; font-weight:600; text-align:right; white-space:nowrap}
+.frow.big .lbl{font-size:1.5rem; font-weight:900; letter-spacing:-.02em}
+.frow.big .val{font-size:1.5rem; font-weight:600}
+.frow.indent{padding-left:16px}
+.frow.indent .lbl{font-weight:400; font-size:.88rem}
+.fnote{font-family:var(--mono); font-size:.6rem; line-height:1.7; letter-spacing:.03em;
+  color:var(--steel); padding-top:12px; text-transform:none}
+
+/* ---------- sections ---------- */
+section{padding:64px 0; border-top:1px solid var(--rule)}
+section:first-of-type{border-top:0}
+.shead{display:grid; grid-template-columns:78px 1fr; gap:22px; align-items:start; margin-bottom:26px}
+.shead .lot{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; color:var(--steel);
+  border-top:3px solid var(--ink); padding-top:8px; line-height:1.5}
+.shead h2{font-size:clamp(1.75rem,4.2vw,2.7rem); letter-spacing:-.03em;
+  font-variation-settings:"wdth" 100; text-transform:uppercase; padding-top:4px}
+.shead .sub{color:var(--ink-soft); font-size:1.02rem; margin-top:10px; max-width:52ch}
+.body{max-width:66ch}
+.body h3{font-size:1.18rem; letter-spacing:-.01em; margin:34px 0 10px;
+  text-transform:uppercase; font-variation-settings:"wdth" 92; font-weight:800}
+.body h3:first-child{margin-top:0}
+.body ul{margin:0 0 1.1em; padding-left:0; list-style:none}
+.body ul li{position:relative; padding-left:26px; margin-bottom:.5em}
+.body ul li::before{content:""; position:absolute; left:0; top:.66em;
+  width:12px; height:2px; background:var(--azure)}
+strong{font-weight:650}
+.lede{font-size:1.16rem; line-height:1.55; font-variation-settings:"opsz" 30}
+
+/* pull quote / conviction */
+.conviction{
+  border-left:6px solid var(--azure); padding:6px 0 6px 24px; margin:34px 0;
+  font-family:var(--display); font-weight:700; font-size:1.28rem; line-height:1.3;
+  letter-spacing:-.015em; max-width:36ch;
+}
+
+/* ---------- data table ---------- */
+table{width:100%; border-collapse:collapse; margin:26px 0; font-size:.92rem}
+th{font-family:var(--mono); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase;
+  text-align:left; color:var(--steel); border-bottom:2px solid var(--ink); padding:0 12px 8px 0; vertical-align:bottom}
+td{border-bottom:1px solid var(--rule-soft); padding:11px 12px 11px 0; vertical-align:top; line-height:1.45}
+td:first-child{font-family:var(--display); font-weight:700; letter-spacing:-.01em; width:31%}
+td.m{font-family:var(--mono); font-size:.78rem; letter-spacing:.02em}
+table.codes td:first-child{font-family:var(--mono); font-weight:500; font-size:.78rem; width:22%}
+table.codes td:nth-child(3){font-family:var(--mono); font-weight:500; font-size:.78rem; width:22%}
+
+/* ---------- state + status chips ---------- */
+.chip{display:inline-block; font-family:var(--mono); font-size:.58rem; letter-spacing:.13em;
+  text-transform:uppercase; padding:3px 8px 2px; border:1.5px solid; white-space:nowrap; vertical-align:2px}
+.c-ship{color:#3F5A0E; border-color:var(--fresh); background:rgba(159,187,22,.16)}
+.c-proto{color:var(--amber); border-color:var(--amber); background:rgba(190,124,34,.10)}
+.c-def{color:var(--clay); border-color:var(--clay); background:rgba(158,68,48,.09)}
+.c-pass{color:#3F5A0E; border-color:var(--fresh); background:rgba(159,187,22,.16)}
+.c-fail{color:var(--clay); border-color:var(--clay); background:rgba(158,68,48,.09)}
+.c-unav{color:var(--azure); border-color:var(--azure); background:rgba(28,95,168,.10)}
+.c-req{color:var(--azure); border-color:var(--azure); background:rgba(28,95,168,.10)}
+.c-opt{color:var(--steel); border-color:var(--rule); background:rgba(91,113,104,.08)}
+
+/* ---------- pipeline ---------- */
+.pipe{margin:30px 0; border-top:3px solid var(--ink)}
+.stage{display:grid; grid-template-columns:52px 1fr; gap:20px;
+  border-bottom:1px solid var(--rule); padding:18px 0}
+.stage .n{font-family:var(--mono); font-size:.72rem; color:var(--steel); padding-top:5px}
+.stage h4{font-size:1.02rem; text-transform:uppercase; letter-spacing:-.005em;
+  font-variation-settings:"wdth" 90; margin-bottom:5px}
+.stage p{font-size:.96rem; margin:0; color:var(--ink-soft); line-height:1.5; max-width:60ch}
+
+/* ---------- signal grid ---------- */
+.signals{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin:28px 0}
+.signal{background:var(--card); padding:16px 16px 18px}
+.signal .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel)}
+.signal .v{font-family:var(--display); font-weight:800; font-size:1.02rem; letter-spacing:-.015em;
+  margin-top:7px; line-height:1.2; text-transform:uppercase; font-variation-settings:"wdth" 90}
+.signal .d{font-size:.86rem; color:var(--ink-soft); margin-top:7px; line-height:1.45}
+.signal .g{margin-top:10px}
+
+/* ---------- gallery ---------- */
+.gal{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:26px; margin-top:12px}
+figure{margin:0}
+figure img{width:100%; display:block; border:1px solid var(--rule); background:#fff}
+figcaption{margin-top:9px; font-size:.86rem; color:var(--ink-soft); line-height:1.45}
+figcaption b{font-family:var(--display); font-weight:700; text-transform:uppercase;
+  font-size:.72rem; letter-spacing:.06em; display:block; color:var(--ink); margin-bottom:2px}
+.gal .wide{grid-column:1/-1}
+
+/* ---------- verification ---------- */
+.tally{display:flex; gap:0; border:2px solid var(--ink); margin:26px 0; flex-wrap:wrap}
+.tally div{flex:1 1 120px; padding:18px 16px; border-right:1px solid var(--rule)}
+.tally div:last-child{border-right:0}
+.tally .n{font-family:var(--display); font-weight:900; font-size:2.3rem; letter-spacing:-.04em; line-height:1}
+.tally .k{font-family:var(--mono); font-size:.58rem; letter-spacing:.13em; color:var(--steel); margin-top:8px}
+
+/* ---------- closing ---------- */
+.closing{background:var(--ink); color:var(--paper); margin-top:64px}
+.closing .wrap{padding-top:56px; padding-bottom:56px}
+.closing h2{color:var(--paper); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:-.03em; text-transform:uppercase}
+.closing p{color:#C6D2CB; max-width:60ch}
+.closing .eyebrow{color:#8FBCE8}
+.closing hr{border:0; border-top:1px solid #2C4237; margin:26px 0}
+.closing ul{margin:0; padding-left:0; list-style:none; max-width:62ch}
+.closing ul li{position:relative; padding-left:26px; margin-bottom:.55em; color:#C6D2CB}
+.closing ul li::before{content:""; position:absolute; left:0; top:.66em; width:12px; height:2px; background:#8FBCE8}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .shead{grid-template-columns:1fr; gap:10px}
+  .shead .lot{border-top:2px solid var(--ink); padding-top:6px}
+  .byline{grid-template-columns:1fr}
+  .cover{padding-top:36px}
+  table.codes td:first-child,table.codes td:nth-child(3){width:auto}
+}
+@media print{
+  body{background:#fff}
+  section{page-break-inside:auto; padding:34px 0}
+  figure,.facts,.tally,.signals{page-break-inside:avoid}
+  .closing{background:#fff; color:var(--ink)}
+  .closing h2,.closing p,.closing ul li{color:var(--ink)}
+}
+@media (prefers-reduced-motion:no-preference){
+  .cover h1,.deck,.byline{animation:rise .7s cubic-bezier(.2,.7,.3,1) both}
+  .deck{animation-delay:.09s} .byline{animation-delay:.16s}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+}
+</style>
+</head>
+<body>
+<div style="border-bottom:2px solid #10231C;background:#EDEFE9">
+<div style="max-width:940px;margin:0 auto;padding:18px 28px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
+<a href="index.html" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:1.05rem;color:#10231C;text-decoration:none;letter-spacing:-.01em">Esmeralda C. Cabrera Ventura</a>
+<span style="display:flex;gap:16px;flex-wrap:wrap">
+<a href="articles.html" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5B7168;text-decoration:none">&larr; Articles</a>
+<a href="dossiers.html" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5B7168;text-decoration:none">Dossiers</a>
+<a href="projects.html" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5B7168;text-decoration:none">Project details</a>
+<a href="https://www.esmeraldaspace.com" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5B7168;text-decoration:none">Portfolio</a>
+<a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5B7168;text-decoration:none">LinkedIn</a>
+</span>
+</div></div>
+
+
+<!-- ============ COVER ============ -->
+<header class="wrap cover">
+  <div class="stamp">
+    <span class="mono">Engineering Dossier</span>
+    <span class="mono">Client Engagement &middot; Azure</span>
+    <span class="mono">Live &middot; release v14</span>
+  </div>
+
+  <h1>Menifee Maids <span class="two">Platform</span></h1>
+
+  <p class="deck">A bilingual cloud booking, payments and operations platform for a two-person cleaning company &mdash; designed, built, deployed and supported on Microsoft Azure for about $1.70 a month.</p>
+
+  <div class="byline">
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Design, Build &amp; Support</div>
+      <div class="name">Esmeralda C. Cabrera Ventura</div>
+      <div class="role">Cloud &amp; Full-Stack Developer &middot; Client engagement &middot; Live at menifeemaids.com</div>
+    </div>
+    <div>
+      <div class="mono" style="color:var(--steel); margin-bottom:6px">Scope of this document</div>
+      <div class="role">A technical account of a delivered client engagement: requirements under hard constraints, the seven-service architecture, the decision records behind it, the production incident that never reached customers, the test harness, the cost model and the roadmap. Customer records shown are demonstration data.</div>
+    </div>
+  </div>
+
+  <!-- SIGNATURE PANEL -->
+  <div class="facts">
+    <div class="fhead">Engineering Facts</div>
+    <div class="fsub">Microsoft Azure &middot; West US 2 &middot; release v14</div>
+    <hr class="hr-fat">
+    <div class="frow big"><span class="lbl">Projected monthly cost, before SMS</span><span class="val">~$1.70</span></div>
+    <hr class="hr-mid">
+    <div class="frow"><span class="lbl">Azure services integrated<small>plus Stripe, GitHub Actions and DNS</small></span><span class="val">7</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">HTTP API endpoints<small>plus scheduled and queue-driven functions</small></span><span class="val">13 + 5</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Application code<small>front end, API and background jobs</small></span><span class="val">~13.5k lines</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Languages supported<small>~380 translated interface strings</small></span><span class="val">2</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Automated end-to-end checks<small>against the real API code, rerun every release</small></span><span class="val">130+</span></div>
+    <hr class="hr-thin">
+    <div class="frow"><span class="lbl">Versioned releases shipped</span><span class="val">14</span></div>
+    <div class="frow indent"><span class="lbl">Success criteria met</span><span class="val">6 of 6</span></div>
+    <div class="frow indent"><span class="lbl">Customer bookings lost to the incident</span><span class="val">0</span></div>
+    <hr class="hr-mid">
+    <div class="frow big"><span class="lbl">Staff sync cycle</span><span class="val">45 s</span></div>
+    <hr class="hr-fat">
+    <div class="fnote">
+      A two-person business cannot carry a meaningful monthly software bill. That single constraint eliminated
+      whole categories of design before the first resource was created, and it is visible in every decision
+      record in section 04.
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 01 ENGAGEMENT ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">01<br>Engagement</div>
+    <div>
+      <h2>Phone calls, text threads and a paper calendar</h2>
+      <p class="sub">The constraints were the brief, and the hardest one was the budget.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p class="lede">Menifee Maids is a family-owned residential, commercial and post-construction cleaning company serving fifteen cities in Western Riverside County, California. The owner works on job sites most of the day, often with a weak phone signal; a part-time helper assists. Before this engagement, requests arrived by phone and text, availability lived on paper, and there was no reliable record of which jobs had been paid.</p>
+
+    <p>I was responsible for the whole engagement: requirements analysis, solution architecture, Azure provisioning, front-end and API development, payments integration, CI/CD, DNS and email deliverability, security, test design, production troubleshooting, vendor escalation and client documentation.</p>
+
+    <h3>The five problems</h3>
+    <ul>
+      <li><strong>Lost and double-booked requests</strong> &mdash; no single source of truth for who asked for what, and when</li>
+      <li><strong>A language gap</strong> &mdash; much of the service area is Spanish-speaking, but competitors' sites are English-only</li>
+      <li><strong>Slow payment collection</strong> &mdash; invoices by hand, no card payments, no automatic reconciliation</li>
+      <li><strong>A phone-first reality</strong> &mdash; any tool had to work one-handed, between jobs, on a poor connection</li>
+      <li><strong>A tight budget</strong> &mdash; a two-person business cannot carry a meaningful monthly software bill</li>
+    </ul>
+
+    <div class="conviction">Near-zero fixed cost is not a feature you add at the end. It decides the architecture before the first resource exists.</div>
+  </div>
+
+  <table>
+    <thead><tr><th>#</th><th>Success criterion</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td class="m">S1</td><td>A customer can book online in either language and receive a confirmation</td><td><span class="chip c-pass">Met</span> verified in production</td></tr>
+      <tr><td class="m">S2</td><td>Staff on different phones see the same jobs within a minute</td><td><span class="chip c-pass">Met</span> 45-second pull, ~1.5 s push</td></tr>
+      <tr><td class="m">S3</td><td>Card payments reconcile without manual entry</td><td><span class="chip c-pass">Met</span> webhook verified sandbox and live</td></tr>
+      <tr><td class="m">S4</td><td>No booking is lost if a backend component fails</td><td><span class="chip c-pass">Met</span> direct write with queue fallback</td></tr>
+      <tr><td class="m">S5</td><td>Fixed monthly infrastructure cost near zero</td><td><span class="chip c-pass">Met</span> ~$1.70/month projected</td></tr>
+      <tr><td class="m">S6</td><td>Background reminders and archiving run unattended</td><td><span class="chip c-pass">Met</span> after the incident in section 06</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 02 SYSTEM ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">02<br>System</div>
+    <div>
+      <h2>One front door, seven services behind it</h2>
+      <p class="sub">Customers and staff only ever talk to the Static Web App and its built-in API.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Component</th><th>Plan / configuration</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td>Website and dashboards</td><td class="m">Static Web Apps Free &middot; Node 22 managed API</td><td>20 pages, offline shell, built-in Microsoft sign-in and route rules</td></tr>
+      <tr><td>HTTP API</td><td class="m">13 managed endpoints</td><td>Bookings, jobs, payments, photos, messaging, settings, health</td></tr>
+      <tr><td>Background jobs</td><td class="m">Linux Consumption &middot; system-assigned identity</td><td>Reminders, archiving, customer roll-up, queued bookings</td></tr>
+      <tr><td>Database</td><td class="m">Cosmos DB for NoSQL &middot; free tier &middot; 1,000 RU/s shared</td><td>Jobs, payments, availability, settings, customers</td></tr>
+      <tr><td>Files and queue</td><td class="m">StorageV2 &middot; TLS 1.2 &middot; HTTPS only &middot; no public blobs</td><td>Job photos, archive, booking fallback queue and poison queue</td></tr>
+      <tr><td>Email</td><td class="m">Communication Services &middot; custom domain &middot; SPF/DKIM verified</td><td>All customer and owner email, sent from the client's own domain</td></tr>
+      <tr><td>Payments</td><td class="m">Stripe &middot; Checkout Sessions &middot; restricted key</td><td>Card collection, signed webhooks, payouts, receipts</td></tr>
+      <tr><td>Delivery</td><td class="m">GitHub repository + Actions</td><td>Two workflows deploying site/API and the Function App on every push</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>What the free tier costs you</h3>
+    <p>Managed functions inside Static Web Apps are HTTP-only and have no managed identity. Two consequences follow, and both shaped the design: the website's API holds keys in environment variables rather than using identity-based access, and anything on a timer or queue trigger needs a separate Function App. That background app runs on its own plan with a system-assigned identity holding database and storage roles, so <strong>no secrets live on it at all</strong>.</p>
+    <p>One region throughout, because Static Web Apps is not offered in the region originally considered.</p>
+  </div>
+
+  <div class="gal">
+    <figure><img src="images/mm-01-home-en.jpg" alt="The public homepage in English"><figcaption><b>Public site, English</b>Services, instant pricing, service area and a five-step booking flow.</figcaption></figure>
+    <figure><img src="images/mm-02-home-es.jpg" alt="The public homepage in Spanish"><figcaption><b>Public site, Spanish</b>Parallel pages with a language switch on every one &mdash; around 380 translated strings in vocabulary suited to the local community.</figcaption></figure>
+  </div>
+
+  <div class="body">
+    <h3>Identity and access</h3>
+    <p>Staff sign in with Microsoft accounts through the platform's built-in provider. There is no app registration to maintain and no passwords are stored. Roles are custom and assigned by invitation, and access is enforced twice: route rules stop unauthorized requests at the edge, and each API function re-checks the caller's role from the platform-signed principal header.</p>
+    <p>One deliberate detail in that check: being authenticated deliberately does not count. It only means the caller has a Microsoft account, which anyone can get. The custom roles are what actually restrict access.</p>
+  </div>
+</section>
+
+<!-- ============ 03 OFFLINE ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">03<br>Offline</div>
+    <div>
+      <h2>The office is a job site</h2>
+      <p class="sub">An offline-first dashboard with a three-way merge, because staff work from phones on a weak signal.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>The dashboards install to a phone's home screen and read and write a local working copy. A sync engine pulls every 45 seconds &mdash; and on open and on reconnect &mdash; pushing about 1.5 seconds after a change. Merging compares local against cloud against a last-agreed snapshot, which is what makes conflicts resolve deterministically rather than by luck.</p>
+  </div>
+
+  <div class="signals">
+    <div class="signal"><div class="k">Rule 01</div><div class="v">Local edit</div><div class="d">Push it. The device changed something the cloud has not seen.</div></div>
+    <div class="signal"><div class="k">Rule 02</div><div class="v">Remote edit</div><div class="d">Take it. Another device changed something this one has not seen.</div></div>
+    <div class="signal"><div class="k">Rule 03</div><div class="v">Both changed</div><div class="d">Newest wins, decided against the last-agreed snapshot rather than guessed.</div></div>
+    <div class="signal"><div class="k">Rule 04</div><div class="v">Mass disappearance</div><div class="d">If more than three records vanish at once, restore rather than delete.</div><div class="g"><span class="chip c-req">Guard</span></div></div>
+  </div>
+
+  <div class="body">
+    <p>A device never pushes before its first successful pull, so a stale copy cannot overwrite newer data. The mass-disappearance guard exists because the failure it prevents &mdash; a sync bug quietly emptying the business's job history &mdash; is unrecoverable in a way that a sync delay is not.</p>
+  </div>
+
+  <div class="gal">
+    <figure><img src="images/mm-04-requests.jpg" alt="The staff request inbox with booking cards"><figcaption><b>Request inbox</b>Each booking carries a first choice and a backup, so the common case resolves in one tap. Records shown are demonstration data.</figcaption></figure>
+    <figure><img src="images/mm-05-calendar.jpg" alt="The availability calendar in the staff dashboard"><figcaption><b>Availability</b>The calendar the owner or helper edits, and the source the public booking flow offers slots from.</figcaption></figure>
+    <figure class="wide"><img src="images/mm-06-payments.jpg" alt="The job database with totals, filters, export buttons and per-job payment status"><figcaption><b>Job database</b>Searchable, with outstanding and collected totals and PDF or CSV export &mdash; the record of what was paid that the business previously did not have.</figcaption></figure>
+    <figure><img src="images/mm-03-booking-mobile.jpg" alt="The booking flow on a phone, in Spanish"><figcaption><b>Booking, phone, Spanish</b>Only open, future slots are offered, judged in business time rather than the visitor's.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============ 04 DECISIONS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">04<br>Decisions</div>
+    <div>
+      <h2>Ten records, context and consequence</h2>
+      <p class="sub">Each significant decision written the way an architecture decision record is written on a team.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Decision</th><th>Why</th><th>Consequence accepted</th></tr></thead>
+    <tbody>
+      <tr><td>Static Web Apps Free with a managed API</td><td>Hosting, API and staff sign-in at no fixed cost</td><td>One deployment, free TLS and custom domain &mdash; but HTTP-only functions with no managed identity, so scheduled work needs a separate app</td></tr>
+      <tr><td>Cosmos DB free tier, manual throughput</td><td>Job records change shape as the business evolves; cost must stay near zero</td><td>Schemaless JSON suits evolving records. Autoscale deliberately avoided because it can climb past the free allowance</td></tr>
+      <tr><td>Per-item TTL instead of a purge job</td><td>Closed jobs should not accumulate forever</td><td>Deletion is free and cannot fail &mdash; but the archive job becomes load-bearing, which raised the priority of fixing the Function App</td></tr>
+      <tr><td>Bookings write directly, queue as fallback</td><td>The original design queued every booking; when the background app could not start, bookings sat in the queue</td><td>The customer path no longer depends on the background tier. The fallback writer is create-only, so a delayed copy cannot overwrite staff edits</td></tr>
+      <tr><td>Offline-first with three-way merge</td><td>Staff work from job sites with a weak signal and several devices</td><td>Fast and offline-capable; conflicts resolve deterministically and a guard restores rather than deletes</td></tr>
+      <tr><td>Server-side Checkout per invoice</td><td>A single pasted link cannot vary the amount and can be tampered with</td><td>Prices cannot be changed by editing a link; payments mark themselves paid; card data stays with Stripe, keeping PCI scope minimal</td></tr>
+      <tr><td>Human-reviewed customer messaging</td><td>The client wanted control over the wording of every message</td><td>One extra tap per message, accepted deliberately in exchange for control</td></tr>
+      <tr><td>Photos by attachment and private link</td><td>Web pages cannot attach files to an email or text opened in another app</td><td>The platform sends the email itself with attachments; texts carry an HMAC-keyed link that cannot be guessed or edited to show another job</td></tr>
+      <tr><td>Background jobs on a separate app with managed identity</td><td>Timers and queue triggers are unavailable in managed functions</td><td>No secrets on that app. Its plan reaches end of support in 2028, so migration is on the roadmap</td></tr>
+      <tr><td>Business-time scheduling</td><td>Visitors could be anywhere; the business runs on Pacific time</td><td>No past or imminent slots offered, and reminders fire at 5 PM local rather than 5 PM UTC</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 05 PAYMENTS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">05<br>Payments</div>
+    <div>
+      <h2>The browser never decides the amount</h2>
+      <p class="sub">Server-authoritative checkout, reconciled by a signature-verified webhook.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>A payment request reads the stored amount and status from the database, creates a Checkout Session on the server, and redirects the customer to the payment provider's own page. The customer pays there; a signed webhook arrives, is verified, and marks the invoice paid. Every dashboard shows "Paid" on its next sync, and the job closes when it is both done and paid.</p>
+    <p>The live key is a restricted one carrying exactly two permissions: write Checkout Sessions, read Payment Intents. That is the entire capability a compromised key would grant.</p>
+  </div>
+
+  <div class="gal">
+    <figure><img src="images/mm-07-pay-invoice.jpg" alt="The customer-facing pay page showing service, job number and amount due"><figcaption><b>Customer view</b>The amount comes from the database, not from the link. Payment links carry unguessable tokens and can expire or be replaced.</figcaption></figure>
+    <figure><img src="images/mm-08-payment-received.jpg" alt="The payment received confirmation page"><figcaption><b>Verified live</b>Confirmed end to end with a real transaction in live mode, then reconciled automatically.</figcaption></figure>
+  </div>
+
+  <div class="body">
+    <div class="conviction">Prices that live in a URL are prices a customer can edit. Moving the amount to the server is the difference between a payment link and a payment system.</div>
+  </div>
+</section>
+
+<!-- ============ 06 INCIDENT ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">06<br>Incident</div>
+    <div>
+      <h2>A production component that never started</h2>
+      <p class="sub">The most demanding problem of the engagement. The business kept running throughout.</p>
+    </div>
+  </div>
+
+  <div class="tally">
+    <div><div class="n">503</div><div class="k">App and deploy endpoint</div></div>
+    <div><div class="n">0</div><div class="k">Worker instances</div></div>
+    <div><div class="n">3</div><div class="k">Faults, stacked</div></div>
+    <div><div class="n">0</div><div class="k">Customer bookings lost</div></div>
+  </div>
+
+  <div class="body">
+    <p><strong>Symptom.</strong> Both the background Function App and its deployment endpoint returned 503. The portal showed runtime version "Error" and the functions list would not load.</p>
+    <p><strong>Impact.</strong> Reminders, archiving and customer roll-ups could not run. Customer bookings were unaffected, because of a mitigation shipped while the cause was still unknown.</p>
+    <p><strong>Root cause.</strong> The app had been created on Node.js 24, which the CLI recommended after refusing Node 20 as end-of-life. The hosting plan did not support Node.js 24, so no worker could start.</p>
+  </div>
+
+  <div class="gal">
+    <figure class="wide"><img src="images/mm-09-zero-workers.jpg" alt="Azure diagnostics reporting the host runtime unavailable and the app running on zero worker instances"><figcaption><b>The diagnostic that named it</b>The host runtime was unavailable for a sustained period and the app was running on zero worker instances, so no code could execute.</figcaption></figure>
+  </div>
+
+  <table>
+    <thead><tr><th>Step</th><th>Finding</th></tr></thead>
+    <tbody>
+      <tr><td>App created from Cloud Shell</td><td>Node 20 refused as end-of-life; Node 24 used, as advised</td></tr>
+      <tr><td>Publish from the workstation</td><td>Wrong account and tenant, then a missing worker runtime &mdash; both fixed, neither the cause</td></tr>
+      <tr><td>Publish with an explicit language flag</td><td>Package uploads, but syncing triggers fails</td></tr>
+      <tr><td>Remote build and CI workflow</td><td>Deployment endpoint unavailable (503)</td></tr>
+      <tr><td>Configuration review</td><td>Publishing restrictions, settings and network access all ruled out</td></tr>
+      <tr><td>Attempted runtime switch from PowerShell</td><td>The pipe character in the version string was read as a shell pipe; the change never applied</td></tr>
+      <tr><td>Diagnose and solve problems</td><td>The app was running on zero worker instances</td></tr>
+      <tr><td>App rebuilt from scratch</td><td>Same fault reproduced, so not a corrupted app</td></tr>
+      <tr><td>Mitigation shipped</td><td>Bookings written directly to the database; customers unaffected</td></tr>
+      <tr><td>Support case opened</td><td>Full evidence attached; vendor reproduced it</td></tr>
+      <tr><td>Vendor response</td><td>Node.js 24 unsupported on this plan; Node 22 advised</td></tr>
+      <tr><td>Fix applied</td><td>Node 22 in the portal; runtime healthy immediately; workflow aligned</td></tr>
+      <tr><td>Deploy fails with 401</td><td>Publish profile stale; secret replaced</td></tr>
+      <tr><td>Deploy succeeds</td><td>All five functions deployed</td></tr>
+    </tbody>
+  </table>
+
+  <div class="gal">
+    <figure class="wide"><img src="images/mm-10-deploy-401.jpg" alt="A CI run failing at the deploy step with repeated 401 unauthorized errors"><figcaption><b>The last layer</b>A stale deployment credential &mdash; which looks nothing like the runtime fault underneath it, and would have been misleading if diagnosed first.</figcaption></figure>
+  </div>
+
+  <div class="body">
+    <div class="conviction">Anything customers depend on shouldn't hinge on a background component. That decision was made while the cause was still unknown, and it is why the incident cost the business nothing.</div>
+
+    <h3>Other case studies, same loop</h3>
+    <p>A dozen smaller issues followed one pattern: reproduce, hypothesize, change one variable at a time, fix the cause rather than the symptom, then add a check so it cannot return silently.</p>
+    <ul>
+      <li><strong>Bookings never reached the database.</strong> The page and dashboard shared one browser's storage, so a "successful" booking existed only on that device. Fixed by server-side writes and the sync engine</li>
+      <li><strong>Past time slots were offered.</strong> The date was checked but not the time of day, and the visitor's time zone was used. Fixed with business-time filtering, a one-hour lead and API-side enforcement</li>
+      <li><strong>Photos went missing from texts and emails.</strong> Browsers cannot attach files to another app. Fixed with platform-sent email carrying attachments, and private HMAC-keyed links for texts</li>
+      <li><strong>Customers were emailed before review.</strong> Messages sent automatically. Fixed with a preview-first panel requiring an explicit Send</li>
+      <li><strong>English text in the Spanish portal.</strong> A sentence split around a link and a template table misused. Fixed, and a full-portal scan now runs clean</li>
+      <li><strong>Business mailbox closed.</strong> Found when a test email bounced; replaced across 31 places in 14 files</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 07 QUALITY ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">07<br>Quality</div>
+    <div>
+      <h2>Tested against the real code</h2>
+      <p class="sub">Not against mocks of my own API &mdash; against the actual handlers, every release.</p>
+    </div>
+  </div>
+  <div class="body">
+    <p>A local harness runs the real API handlers behind a small HTTP server, with in-memory stand-ins for the database, blob storage, the queue, email and payments. It also simulates the platform's sign-in, so tests can act as an owner, a helper or an anonymous customer. A headless browser then drives the real pages at desktop sizes and as a phone, with simulated clocks and time zones where needed.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Suite</th><th>Checks</th><th>What it proves</th></tr></thead>
+    <tbody>
+      <tr><td>Cross-device sync</td><td class="m">25</td><td>Two staff phones and a customer stay consistent through create, confirm, reschedule, pay, photos and delete</td></tr>
+      <tr><td>Customer notifications</td><td class="m">29</td><td>Every message type in both languages; nothing sends without an explicit Send</td></tr>
+      <tr><td>Payments, live mode</td><td class="m">23</td><td>Server-set amounts, tampered links rejected, forged webhooks rejected, paid status syncs</td></tr>
+      <tr><td>Payments disabled path</td><td class="m">7</td><td>Graceful behaviour before card payments are switched on</td></tr>
+      <tr><td>Photos and attachments</td><td class="m">22</td><td>Attachment limits, private photo page, HMAC links, Spanish variants</td></tr>
+      <tr><td>QR hand-off</td><td class="m">16</td><td>Generated QR images decoded to confirm the exact number and message</td></tr>
+      <tr><td>Device detection</td><td class="m">4</td><td>Phones, including desktop-site mode, get the one-tap text button</td></tr>
+      <tr><td>Background-job markers</td><td class="m">4</td><td>Reminder and roll-up markers survive dashboard edits</td></tr>
+      <tr><td>Latest release features</td><td class="m">33</td><td>Calendar at four times of day, an out-of-state visitor, a page left open, API rejection, helper payment links in both portals</td></tr>
+      <tr><td>Layout</td><td class="m">13 &times; 7</td><td>No hidden menu links and no sideways scrolling from 320 px to 1,280 px</td></tr>
+      <tr><td>Spanish portal scan</td><td class="m">All states</td><td>No English text left in the Spanish helper portal</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <div class="conviction">When a check failed because of the test itself, I fixed the test and reported it &mdash; rather than weakening the product to make the suite green.</div>
+    <p>Every suite was rerun on every release. Visual changes were reviewed in rendered screenshots at phone and desktop sizes before shipping, and each release was verified in production with the client afterwards: cache version, sign-in, a booking, a payment and a message.</p>
+  </div>
+</section>
+
+<!-- ============ 08 SECURITY ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">08<br>Security</div>
+    <div>
+      <h2>Defense in depth at the edge, the API and the data</h2>
+      <p class="sub">Designed in from the first phase, with the open items named.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Area</th><th>Control</th></tr></thead>
+    <tbody>
+      <tr><td>Identity</td><td>Microsoft sign-in; invitation-only custom roles; two-step verification on staff accounts; no stored passwords</td></tr>
+      <tr><td>Authorization</td><td>Route rules at the edge, plus role re-checks in every function from the platform-signed principal header</td></tr>
+      <tr><td>Secrets</td><td>Environment variables and encrypted CI secrets only; nothing in the browser or the repository</td></tr>
+      <tr><td>Managed identity</td><td>The background Function App uses identity-based roles and holds no keys</td></tr>
+      <tr><td>Payments</td><td>Hosted checkout; amounts from the database; signed webhooks; restricted live key with two permissions</td></tr>
+      <tr><td>Files</td><td>Private container; short-lived signed upload and read URLs; photos re-encoded on the device, which strips location data</td></tr>
+      <tr><td>Customer links</td><td>Unguessable payment tokens; HMAC-protected photo links; expiry and replacement of payment links</td></tr>
+      <tr><td>Transport</td><td>HTTPS only; TLS 1.2 minimum on storage and the database</td></tr>
+      <tr><td>Messaging</td><td>Opt-in recorded with a timestamp; opt-out wording enforced; carrier registration required before automated SMS</td></tr>
+      <tr><td>Cost guardrails</td><td>Free tier with a throughput cap; budget alert; upload and attachment limits</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>Open items, stated rather than omitted</h3>
+    <ul>
+      <li>Rotate the keys and deployment credential that were visible during setup &mdash; scheduled in the roadmap</li>
+      <li>Replace sample testimonials with genuine reviews before promoting them</li>
+    </ul>
+
+    <h3>Privacy-preserving documentation</h3>
+    <p>Preparing the report was itself a security exercise. Captures exposing storage keys, a messaging access key, signed storage URLs or a telemetry key were excluded outright. Personal details used as test data &mdash; phone numbers, email addresses, a street address, an IP address and a scannable QR code &mdash; were located by OCR and blurred automatically, and a deployment-credential line was redacted.</p>
+  </div>
+</section>
+
+<!-- ============ 09 OPERATIONS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">09<br>Operations</div>
+    <div>
+      <h2>Cost, releases and handover</h2>
+      <p class="sub">The client can deploy a release with no developer present.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Line</th><th>Plan</th><th>Monthly</th></tr></thead>
+    <tbody>
+      <tr><td>Static Web Apps</td><td class="m">Free</td><td class="m">$0.00</td></tr>
+      <tr><td>Cosmos DB</td><td class="m">Free tier, 1,000 RU/s shared</td><td class="m">$0.00</td></tr>
+      <tr><td>Azure Functions</td><td class="m">Consumption</td><td class="m">$0.00</td></tr>
+      <tr><td>Blob storage (~5 GB)</td><td class="m">Standard LRS</td><td class="m">~$0.15</td></tr>
+      <tr><td>Storage queue</td><td class="m">Standard</td><td class="m">~$0.01</td></tr>
+      <tr><td>Application Insights</td><td class="m">Free allowance</td><td class="m">$0.00</td></tr>
+      <tr><td>Email (~800 messages)</td><td class="m">Pay as you go</td><td class="m">~$0.30</td></tr>
+      <tr><td>Domain (amortized)</td><td class="m">Registrar</td><td class="m">~$1.25</td></tr>
+      <tr><td><strong>Total without SMS</strong></td><td class="m">&mdash;</td><td class="m"><strong>~$1.70</strong></td></tr>
+      <tr><td>SMS: number, campaign, ~600 segments</td><td class="m">Pay as you go</td><td class="m">~$8.80</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <p>Figures come from the project's cost model at roughly 200 jobs a month. Enabling automated texting adds a one-time carrier registration fee, and card payments carry the provider's standard per-transaction fee. A budget alert guards against unexpected changes.</p>
+
+    <h3>Release procedure</h3>
+    <p>Each release is packaged as a versioned archive with a file list and a cache-version bump, compared against the client's last deployed version to produce the exact list of changed and new files. A PowerShell script unpacks and checks the version, <strong>refuses to run on a repository with uncommitted changes</strong>, copies the files, stops on untracked files, then commits and pushes. CI deploys; the client confirms the green check and runs the post-release checks.</p>
+    <p>That refusal to run against a dirty repository is the detail I would defend hardest. The script is operated by someone who is not a developer, and the failure it prevents &mdash; silently committing work in progress &mdash; is one they would have no way to diagnose.</p>
+  </div>
+</section>
+
+<!-- ============ 10 STATUS ============ -->
+<section>
+  <div class="shead">
+    <div class="lot">10<br>Status</div>
+    <div>
+      <h2>Delivered, and what comes next</h2>
+      <p class="sub">Ordered by value to the client.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Capability</th><th>State</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Bilingual public site and booking</td><td><span class="chip c-ship">Live</span></td><td>Instant pricing, real availability, confirmation in the customer's language</td></tr>
+      <tr><td>Staff dashboards with cloud sync</td><td><span class="chip c-ship">Live</span></td><td>Installable, offline-capable, owner and helper roles in both languages</td></tr>
+      <tr><td>Card payments and reconciliation</td><td><span class="chip c-ship">Live</span></td><td>Verified in live mode with a real transaction</td></tr>
+      <tr><td>Customer messaging and photos</td><td><span class="chip c-ship">Live</span></td><td>Reviewed before sending; photos by attachment and private link</td></tr>
+      <tr><td>Background reminders and archiving</td><td><span class="chip c-ship">Live</span></td><td>Restored after the incident in section 06</td></tr>
+      <tr><td>Key rotation and launch content</td><td><span class="chip c-def">Next 30 days</span></td><td>Rotate setup-era credentials; real reviews; cancellation and refund policy; alerts on failed background jobs</td></tr>
+      <tr><td>Company texting number</td><td><span class="chip c-def">1&ndash;3 months</span></td><td>One business number with replies in an owner-only inbox; needs carrier registration</td></tr>
+      <tr><td>Hide customer contact details from helpers</td><td><span class="chip c-def">1&ndash;3 months</span></td><td>Protects the client base as the team grows</td></tr>
+      <tr><td>Plan migration</td><td><span class="chip c-def">3&ndash;12 months</span></td><td>Move background jobs ahead of the hosting plan's end of support in 2028</td></tr>
+      <tr><td>AI quoting and job summaries</td><td><span class="chip c-proto">Proposed</span></td><td>Customers photograph rooms; a vision model fills in counts and condition, while pricing still comes from the client's own rules</td></tr>
+    </tbody>
+  </table>
+
+  <div class="body">
+    <h3>Lessons</h3>
+    <ul>
+      <li><strong>Check the support matrix, not just the tool's advice.</strong> One unsupported runtime version stopped every background job</li>
+      <li><strong>Keep the critical path short.</strong> Anything customers depend on shouldn't hinge on a background component</li>
+      <li><strong>Verify where data lands, not what the screen says.</strong> A local-only dashboard looked like it worked</li>
+      <li><strong>Test assumptions about external systems.</strong> One test email exposed a closed mailbox</li>
+      <li><strong>Design with the platform's limits.</strong> Attachments, texting and contact selection all needed alternate paths</li>
+      <li><strong>Document as you go.</strong> The screenshot log made the support case, the client runbooks and the report possible</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ CLOSING ============ -->
+<div class="closing">
+  <div class="wrap">
+    <div class="eyebrow" style="margin-bottom:14px">What this engagement demonstrates</div>
+    <h2>Architecture under a real constraint</h2>
+    <hr>
+    <p>A seven-service design held near-zero fixed cost through deliberate choices rather than luck: a free database tier with capped throughput, free static hosting, consumption-based functions and pay-per-message email. When a dependency failed, the customer-facing path was moved off it entirely, so customers never saw the outage.</p>
+    <p>The work that is hardest to show in a screenshot is the part I would point at: the decision records with their costs written down, the test harness that runs the real handlers, and a release process a non-technical client can operate alone.</p>
+    <ul>
+      <li>Cloud architecture on Azure with decision records and named trade-offs</li>
+      <li>Full-stack delivery: bilingual front end, 13-endpoint API, background functions, offline-first sync</li>
+      <li>Payments integration with hosted checkout, signed webhooks and restricted keys</li>
+      <li>Infrastructure and DevOps: scripted provisioning, CI deployment, verified releases</li>
+      <li>DNS and email deliverability: custom domain, apex redirect, SPF and DKIM</li>
+      <li>Troubleshooting and root-cause analysis across runtime, tooling and credential faults</li>
+      <li>Vendor escalation with evidence the vendor could reproduce</li>
+      <li>Security and privacy: least privilege, signed webhooks, HMAC links, managed identity, report redaction</li>
+      <li>Client communication: click-by-click runbooks and release scripts for a non-technical operator</li>
+    </ul>
+    <hr>
+    <p class="mono" style="color:#8FBCE8">Azure Static Web Apps &middot; Azure Functions &middot; Cosmos DB &middot; Blob &amp; Queue Storage &middot; Communication Services &middot; Stripe &middot; GitHub Actions &middot; Node.js</p>
+    <p style="margin-top:22px"><a href="shipping-for-a-two-person-business.html" style="color:#EDEFE9">Read the article &rarr;</a> &nbsp;&middot;&nbsp; <a href="https://www.menifeemaids.com" target="_blank" rel="noopener" style="color:#EDEFE9">Visit the live site</a> &nbsp;&middot;&nbsp; <a href="projects.html" style="color:#EDEFE9">All project details</a> &nbsp;&middot;&nbsp; <a href="https://www.linkedin.com/in/esmeraldaspace" target="_blank" rel="noopener" style="color:#EDEFE9">LinkedIn</a></p>
+  </div>
+</div>
+
+</body>
+</html>

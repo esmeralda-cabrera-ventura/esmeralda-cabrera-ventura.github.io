@@ -31,6 +31,30 @@
    ============================================================ */
 
 const ARTICLES = [
+  {
+    title:   "Shipping for a two-person business: a bilingual Azure platform at $1.70 a month",
+    href:    "shipping-for-a-two-person-business.html",
+    date:    "October 2026",
+    read:    "12 min read",
+    summary: "Designing, building and supporting a bilingual booking, payments and operations platform on Azure for a family-run cleaning company — offline-first dashboards, server-authoritative payments, and the outage customers never saw."
+  },
+
+  {
+    title:   "Read the response, not the tutorial: a React storefront on a headless CMS",
+    href:    "read-the-response-not-the-tutorial.html",
+    date:    "October 2026",
+    read:    "8 min read",
+    summary: "Modeling a catalog in Strapi 5, proving its endpoints in Postman, and wiring a React cart to the live API — with three separate moments where following the instructions literally would have produced broken code."
+  },
+
+  {
+    title:   "One feature, every layer: finishing a review endpoint from Express to React",
+    href:    "one-feature-every-layer.html",
+    date:    "October 2026",
+    read:    "7 min read",
+    summary: "A 501 placeholder turned into a working review feature: an atomic MongoDB append, an honest REST contract, an immutable React update — and a startup bug hiding in a single character."
+  },
+
 
   {
     title:   "Access that follows people: a desired-state engine for joiners, movers and leavers",
@@ -71,6 +95,14 @@ const ARTICLES = [
     date:    "July 2026",
     read:    "8 min read",
     summary: "Why I engineered the core matching intelligence directly in PostgreSQL and Node.js, and designed the generative AI layer to sit beside it as an optional enhancement rather than a dependency."
+  },
+
+  {
+    title:   "OAuth across a boundary: joining a public identity provider to a private service",
+    href:    "oauth-across-a-boundary.html",
+    date:    "January 2026",
+    read:    "11 min read",
+    summary: "Connecting a closed cloud device to a self-hosted control plane through Google Cloud: a four-link OAuth trust chain, events instead of polling, and a silent authentication failure diagnosed by reasoning rather than trial and error."
   }
 
 ];
@@ -110,6 +142,39 @@ const ARTICLES = [
    ============================================================ */
 
 const PROJECTS = [
+  {
+    title:   "Menifee Maids Platform",
+    href:    "menifee-maids-platform.html",
+    article: "shipping-for-a-two-person-business.html",
+    kind:    "Client engagement · Engineering dossier",
+    date:    "October 2026",
+    status:  "Live in production · release v14",
+    stack:   "Azure Static Web Apps · Azure Functions · Cosmos DB · Blob & Queue Storage · Communication Services · Stripe · GitHub Actions",
+    summary: "A bilingual booking, payments and operations platform for a family-run cleaning company. Seven Azure services, 130+ automated checks, fourteen releases, and about $1.70 a month."
+  },
+
+  {
+    title:   "Headless CMS Storefront",
+    href:    "headless-cms-shopping-cart.html",
+    article: "read-the-response-not-the-tutorial.html",
+    kind:    "Headless CMS · Engineering dossier",
+    date:    "October 2026",
+    status:  "Four milestones complete",
+    stack:   "Strapi 5 · React 18 · REST · Postman · API tokens · axios · SQLite · Node.js",
+    summary: "A React storefront on a Strapi 5 backend. Typed content modeling, read-only public access, token-authenticated writes, and a client adapted to a breaking response-shape change."
+  },
+
+  {
+    title:   "Book Review Platform",
+    href:    "book-review-platform.html",
+    article: "one-feature-every-layer.html",
+    kind:    "Full-stack · Engineering dossier",
+    date:    "October 2026",
+    status:  "Feature complete",
+    stack:   "Node.js · Express · MongoDB · React 18 · axios · REST · nodemon · Webpack 5",
+    summary: "One feature finished across three tiers: an atomic MongoDB append behind an Express route, an immutable React state update, and all three response paths verified."
+  },
+
 
   {
     title:   "Employee Identity Lifecycle Automation",
@@ -165,7 +230,17 @@ const PROJECTS = [
     stack:   "React · Node.js · Express · PostgreSQL · Keycloak · Docker Compose",
     summary: "An ingredient-first meal platform. Five orchestrated services, 16 normalized tables, weighted compatibility ranking, Keycloak identity, and a containerized runtime that starts from one command."
   }
-
+,
+  {
+    title:   "Google Cloud OAuth & Nest Integration",
+    href:    "google-nest-oauth-integration.html",
+    article: "oauth-across-a-boundary.html",
+    kind:    "Cloud identity · Engineering dossier",
+    date:    "January 2026",
+    status:  "Operational · zero recurring cost",
+    stack:   "Google Cloud · Smart Device Management API · OAuth 2.0 · Cloud Pub/Sub · Cloud Monitoring · Home Assistant",
+    summary: "An identity-driven, event-based integration joining a closed cloud device to a private control plane. One scope, no polling loops, no inbound ports, and nine independently verified checkpoints."
+  }
 ];
 
 
